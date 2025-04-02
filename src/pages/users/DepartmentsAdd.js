@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageContainer from "../../components/common/PageContainer";
-import UserForm from "../../components/users/UserForm";
+import DepartmentForm from "../../components/departments/DepartmentForm";
 
-const UsersAdd = () => {
+const DepartmentsAdd = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -13,17 +13,17 @@ const UsersAdd = () => {
     try {
       setLoading(true);
       // 실제 구현에서는 API 호출
-      console.log("사용자 등록:", formData);
+      console.log("부서 등록:", formData);
 
-      // 성공 시 사용자 목록 페이지로 이동
+      // 성공 시 부서 목록 페이지로 이동
       setTimeout(() => {
         setLoading(false);
-        navigate("/users", {
-          state: { message: "사용자가 성공적으로 등록되었습니다." },
+        navigate("/users/departments", {
+          state: { message: "부서가 성공적으로 등록되었습니다." },
         });
       }, 1000);
     } catch (error) {
-      console.error("사용자 등록 중 오류 발생:", error);
+      console.error("부서 등록 중 오류 발생:", error);
       setLoading(false);
     }
   };
@@ -32,7 +32,7 @@ const UsersAdd = () => {
     <PageContainer>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">사용자 등록</h1>
+          <h1 className="text-2xl font-bold">부서 등록</h1>
         </div>
 
         <div className="bg-card rounded-lg shadow p-6 border border-border">
@@ -42,7 +42,7 @@ const UsersAdd = () => {
               <span className="ml-2 text-muted-foreground">처리 중...</span>
             </div>
           ) : (
-            <UserForm onSubmit={handleSubmit} />
+            <DepartmentForm onSubmit={handleSubmit} />
           )}
         </div>
       </div>
@@ -50,4 +50,4 @@ const UsersAdd = () => {
   );
 };
 
-export default UsersAdd;
+export default DepartmentsAdd;
