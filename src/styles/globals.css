@@ -1,0 +1,225 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 라이트 테마 변수 (기본 테마) */
+    --background: 250 250 250;
+    --foreground: 15 23 42;
+    --card: 255 255 255;
+    --card-foreground: 15 23 42;
+    --popover: 255 255 255;
+    --popover-foreground: 15 23 42;
+    --primary: 59 130 246;
+    --primary-foreground: 255 255 255;
+    --secondary: 241 245 249;
+    --secondary-foreground: 15 23 42;
+    --muted: 241 245 249;
+    --muted-foreground: 100 116 139;
+    --accent: 243 244 246;
+    --accent-foreground: 15 23 42;
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+    --border: 226 232 240;
+    --input: 226 232 240;
+    --ring: 59 130 246;
+    --radius: 0.5rem;
+
+    /* 추가 색상 변수 */
+    --success: 16 185 129;
+    --success-foreground: 255 255 255;
+    --warning: 245 158 11;
+    --warning-foreground: 255 255 255;
+    --info: 14 165 233;
+    --info-foreground: 255 255 255;
+
+    /* 그라데이션 배경용 변수 (쉼표로 구분하여 사용) */
+    --background-start-rgb: 248, 250, 252;
+    --background-end-rgb: 241, 245, 249;
+  }
+
+  .dark {
+    /* 다크 모드 테마 변수 */
+    --background: 17 24 39;
+    --foreground: 237 233 254;
+    --card: 31 41 55;
+    --card-foreground: 237 233 254;
+    --popover: 31 41 55;
+    --popover-foreground: 237 233 254;
+    --primary: 79 70 229;
+    --primary-foreground: 237 233 254;
+    --secondary: 55 65 81;
+    --secondary-foreground: 237 233 254;
+    --muted: 55 65 81;
+    --muted-foreground: 156 163 175;
+    --accent: 55 65 81;
+    --accent-foreground: 237 233 254;
+    --destructive: 248 113 113;
+    --destructive-foreground: 15 23 42;
+    --border: 55 65 81;
+    --input: 55 65 81;
+    --ring: 79 70 229;
+
+    /* 추가 색상 변수 */
+    --success: 5 150 105;
+    --success-foreground: 237 233 254;
+    --warning: 217 119 6;
+    --warning-foreground: 237 233 254;
+    --info: 2 132 199;
+    --info-foreground: 237 233 254;
+
+    /* 그라데이션 배경용 변수 */
+    --background-start-rgb: 30, 41, 59;
+    --background-end-rgb: 15, 23, 42;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply overflow-hidden;
+  }
+
+  body {
+    @apply bg-background text-foreground overflow-hidden;
+    background: linear-gradient(
+        to bottom,
+        rgb(var(--background-start-rgb)),
+        rgb(var(--background-end-rgb))
+      )
+      fixed;
+    min-height: 100vh;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+      "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+      "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+      monospace;
+  }
+}
+
+/* 스크롤바 스타일링 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-500;
+}
+
+/* 추가 커스텀 스타일 */
+.dark .sidebar {
+  @apply bg-gradient-to-b from-gray-800 to-gray-900;
+}
+
+.light .sidebar {
+  @apply bg-gradient-to-b from-white to-slate-100 border-r border-slate-200;
+}
+
+.dark .card-gradient {
+  @apply bg-gradient-to-br from-gray-800 to-gray-900;
+}
+
+.light .card-gradient {
+  @apply bg-gradient-to-br from-white to-slate-50 shadow-sm;
+}
+
+/* 테마 전환 애니메이션 */
+.theme-transition {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* 라이트 테마 특화 스타일 */
+.light .card {
+  @apply shadow-sm border-slate-200;
+}
+
+.light .button-primary {
+  @apply bg-blue-500 hover:bg-blue-600 text-white;
+}
+
+.light .button-secondary {
+  @apply bg-slate-100 hover:bg-slate-200 text-slate-800;
+}
+
+.light .input-field {
+  @apply border-slate-300 bg-white focus:border-blue-500 focus:ring-blue-500;
+}
+
+.light .table-header {
+  @apply bg-slate-50 text-slate-700;
+}
+
+.light .table-row-hover {
+  @apply hover:bg-slate-50;
+}
+
+.light .nav-item-active {
+  @apply bg-blue-50 text-blue-700;
+}
+
+.light .nav-item {
+  @apply text-slate-700 hover:bg-slate-100;
+}
+
+/* 다크 테마 특화 스타일 */
+.dark .card {
+  @apply border-gray-700 bg-gray-800;
+}
+
+.dark .button-primary {
+  @apply bg-indigo-600 hover:bg-indigo-700 text-white;
+}
+
+.dark .button-secondary {
+  @apply bg-gray-700 hover:bg-gray-600 text-gray-200;
+}
+
+.dark .input-field {
+  @apply border-gray-600 bg-gray-700 focus:border-indigo-500 focus:ring-indigo-500;
+}
+
+.dark .table-header {
+  @apply bg-gray-800 text-gray-300;
+}
+
+.dark .table-row-hover {
+  @apply hover:bg-gray-700;
+}
+
+.dark .nav-item-active {
+  @apply bg-indigo-900 text-indigo-200;
+}
+
+.dark .nav-item {
+  @apply text-gray-300 hover:bg-gray-700;
+}
+
+/* 날짜 입력 필드의 기본 달력 아이콘 숨기기 */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+}
