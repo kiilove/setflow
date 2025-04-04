@@ -21,7 +21,6 @@ import {
 import { HiDocumentText, HiLocationMarker, HiCalendar } from "react-icons/hi";
 import PageContainer from "../../components/common/PageContainer";
 import { getButtonVariantClass } from "../../utils/themeUtils";
-import QRCode from "react-qr-code";
 
 const DepartmentsDetail = () => {
   const { id } = useParams();
@@ -666,11 +665,11 @@ const DepartmentsDetail = () => {
               </button>
             </div>
             <div className="flex flex-col items-center justify-center p-4">
-              <QRCode
+              {/* <QRCode
                 value={`https://setflow.app/users/departments/${department.id}`}
                 size={200}
                 level="H"
-              />
+              /> */}
               <p className="mt-4 text-center text-sm text-muted-foreground">
                 이 QR 코드를 스캔하여 부서 정보에 빠르게 접근하세요.
               </p>

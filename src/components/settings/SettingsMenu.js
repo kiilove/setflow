@@ -1,12 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import {
-  FaCog,
-  FaBell,
-  FaDatabase,
-  FaUserShield,
-  FaShieldAlt,
-  FaChevronRight,
-} from "react-icons/fa";
+  Settings,
+  Bell,
+  Database,
+  UserCog,
+  Shield,
+  ChevronRight,
+} from "lucide-react";
 
 const SettingsMenu = () => {
   const location = useLocation();
@@ -19,27 +19,27 @@ const SettingsMenu = () => {
   const menuItems = [
     {
       path: "/settings",
-      icon: <FaCog className="mr-3 h-5 w-5" />,
+      icon: <Settings className="mr-3 h-5 w-5" />,
       label: "일반 설정",
     },
     {
       path: "/settings/notifications",
-      icon: <FaBell className="mr-3 h-5 w-5 text-yellow-500" />,
+      icon: <Bell className="mr-3 h-5 w-5 text-yellow-500" />,
       label: "알림 설정",
     },
     {
       path: "/settings/backup",
-      icon: <FaDatabase className="mr-3 h-5 w-5 text-blue-500" />,
+      icon: <Database className="mr-3 h-5 w-5 text-blue-500" />,
       label: "백업 및 복원",
     },
     {
       path: "/settings/admin",
-      icon: <FaUserShield className="mr-3 h-5 w-5 text-green-500" />,
+      icon: <UserCog className="mr-3 h-5 w-5 text-green-500" />,
       label: "관리자 관리",
     },
     {
       path: "/settings/security",
-      icon: <FaShieldAlt className="mr-3 h-5 w-5 text-red-500" />,
+      icon: <Shield className="mr-3 h-5 w-5 text-red-500" />,
       label: "보안 설정",
     },
   ];
@@ -67,7 +67,7 @@ const SettingsMenu = () => {
                 {item.icon}
                 <span>{item.label}</span>
               </div>
-              <FaChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4" />
             </Link>
           ))}
         </nav>

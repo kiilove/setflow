@@ -2,15 +2,15 @@
 
 import { useState } from "react";
 import {
-  FaUserShield,
-  FaLock,
-  FaEnvelope,
-  FaUser,
-  FaPhone,
-  FaSave,
-  FaCheck,
-  FaTimes,
-} from "react-icons/fa";
+  UserCog,
+  Lock,
+  Mail,
+  User,
+  Phone,
+  Save,
+  CheckCircle,
+  X,
+} from "lucide-react";
 
 const SettingsAdmin = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -78,7 +78,7 @@ const SettingsAdmin = () => {
       {/* 설정 저장 성공 메시지 */}
       {saveSuccess && (
         <div className="mb-6 p-4 rounded-md bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-300 flex items-center">
-          <FaCheck className="mr-2" />
+          <CheckCircle className="mr-2 h-4 w-4" />
           <span>관리자 정보가 성공적으로 저장되었습니다.</span>
         </div>
       )}
@@ -87,7 +87,7 @@ const SettingsAdmin = () => {
       <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border theme-transition">
         <div className="p-4 border-b border-border theme-transition">
           <h3 className="text-lg font-medium text-foreground theme-transition flex items-center">
-            <FaUserShield className="mr-2 text-primary" />
+            <UserCog className="mr-2 h-5 w-5 text-primary" />
             관리자 정보
           </h3>
         </div>
@@ -96,7 +96,7 @@ const SettingsAdmin = () => {
             <div className="space-y-4">
               <div className="flex items-center p-4 bg-muted/50 rounded-md theme-transition">
                 <div className="flex-shrink-0 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <FaUserShield className="h-6 w-6 text-primary" />
+                  <UserCog className="h-6 w-6 text-primary" />
                 </div>
                 <div className="ml-4">
                   <h4 className="text-md font-medium text-foreground theme-transition">
@@ -136,7 +136,7 @@ const SettingsAdmin = () => {
                   onClick={handleEditAdmin}
                   className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 >
-                  <FaLock className="mr-2 -ml-1 h-4 w-4" />
+                  <Lock className="mr-2 -ml-1 h-4 w-4" />
                   관리자 정보 수정
                 </button>
               </div>
@@ -153,7 +153,7 @@ const SettingsAdmin = () => {
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaUser className="text-muted-foreground" />
+                      <User className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <input
                       type="text"
@@ -175,7 +175,7 @@ const SettingsAdmin = () => {
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaEnvelope className="text-muted-foreground" />
+                      <Mail className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <input
                       type="email"
@@ -197,7 +197,7 @@ const SettingsAdmin = () => {
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaPhone className="text-muted-foreground" />
+                      <Phone className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <input
                       type="text"
@@ -251,7 +251,7 @@ const SettingsAdmin = () => {
                   onClick={() => setIsAuthenticated(false)}
                   className="inline-flex items-center px-4 py-2 border border-border rounded-md shadow-sm text-sm font-medium text-foreground bg-muted hover:bg-muted/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-muted theme-transition"
                 >
-                  <FaTimes className="mr-2 -ml-1 h-4 w-4" />
+                  <X className="mr-2 -ml-1 h-4 w-4" />
                   취소
                 </button>
                 <button
@@ -259,7 +259,7 @@ const SettingsAdmin = () => {
                   onClick={handleSaveAdminInfo}
                   className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 >
-                  <FaSave className="mr-2 -ml-1 h-4 w-4" />
+                  <Save className="mr-2 -ml-1 h-4 w-4" />
                   저장
                 </button>
               </div>
@@ -273,7 +273,7 @@ const SettingsAdmin = () => {
         <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border theme-transition">
           <div className="p-4 border-b border-border theme-transition">
             <h3 className="text-lg font-medium text-foreground theme-transition flex items-center">
-              <FaLock className="mr-2 text-primary" />
+              <Lock className="mr-2 h-5 w-5 text-primary" />
               비밀번호 변경
             </h3>
           </div>
@@ -326,7 +326,7 @@ const SettingsAdmin = () => {
                   type="button"
                   className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                 >
-                  <FaSave className="mr-2 -ml-1 h-4 w-4" />
+                  <Save className="mr-2 -ml-1 h-4 w-4" />
                   비밀번호 변경
                 </button>
               </div>
@@ -340,7 +340,7 @@ const SettingsAdmin = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-card text-card-foreground rounded-lg shadow-lg p-6 max-w-md w-full theme-transition">
             <h3 className="text-xl font-semibold mb-4 text-foreground theme-transition flex items-center">
-              <FaLock className="mr-2 text-primary" />
+              <Lock className="mr-2 h-5 w-5 text-primary" />
               관리자 인증
             </h3>
             <p className="text-muted-foreground theme-transition mb-4">

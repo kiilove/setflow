@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FaBell, FaEnvelope, FaMobile, FaSave, FaCheck } from "react-icons/fa";
+import { Bell, Mail, Smartphone, Save, CheckCircle } from "lucide-react";
 
 const SettingsNotifications = () => {
   const [notificationSettings, setNotificationSettings] = useState({
@@ -31,7 +31,7 @@ const SettingsNotifications = () => {
 
   // 설정 저장 핸들러
   const handleSaveSettings = () => {
-    // 실제 구현���서는 API 호출로 설정 저장
+    // 실제 구현에서는 API 호출로 설정 저장
     console.log("Saving notification settings:", notificationSettings);
 
     // 성공 메시지 표시
@@ -46,7 +46,7 @@ const SettingsNotifications = () => {
       {/* 설정 저장 성공 메시지 */}
       {saveSuccess && (
         <div className="mb-6 p-4 rounded-md bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-300 flex items-center">
-          <FaCheck className="mr-2" />
+          <CheckCircle className="mr-2 h-4 w-4" />
           <span>알림 설정이 성공적으로 저장되었습니다.</span>
         </div>
       )}
@@ -54,7 +54,8 @@ const SettingsNotifications = () => {
       {/* 알림 채널 설정 */}
       <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border theme-transition">
         <div className="p-4 border-b border-border theme-transition">
-          <h3 className="text-lg font-medium text-foreground theme-transition">
+          <h3 className="text-lg font-medium text-foreground theme-transition flex items-center">
+            <Bell className="mr-2 h-5 w-5 text-yellow-500" />
             알림 채널
           </h3>
         </div>
@@ -62,7 +63,7 @@ const SettingsNotifications = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <FaEnvelope className="mr-3 text-blue-500" />
+                <Mail className="mr-3 h-5 w-5 text-blue-500" />
                 <div>
                   <h4 className="text-md font-medium text-foreground theme-transition">
                     이메일 알림
@@ -86,7 +87,7 @@ const SettingsNotifications = () => {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <FaMobile className="mr-3 text-blue-500" />
+                <Smartphone className="mr-3 h-5 w-5 text-blue-500" />
                 <div>
                   <h4 className="text-md font-medium text-foreground theme-transition">
                     푸시 알림
@@ -110,7 +111,7 @@ const SettingsNotifications = () => {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <FaBell className="mr-3 text-blue-500" />
+                <Bell className="mr-3 h-5 w-5 text-blue-500" />
                 <div>
                   <h4 className="text-md font-medium text-foreground theme-transition">
                     SMS 알림
@@ -138,7 +139,8 @@ const SettingsNotifications = () => {
       {/* 알림 이벤트 설정 */}
       <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border theme-transition">
         <div className="p-4 border-b border-border theme-transition">
-          <h3 className="text-lg font-medium text-foreground theme-transition">
+          <h3 className="text-lg font-medium text-foreground theme-transition flex items-center">
+            <Bell className="mr-2 h-5 w-5 text-yellow-500" />
             알림 이벤트
           </h3>
         </div>
@@ -344,7 +346,7 @@ const SettingsNotifications = () => {
               onClick={handleSaveSettings}
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
             >
-              <FaSave className="mr-2 -ml-1 h-4 w-4" />
+              <Save className="mr-2 -ml-1 h-4 w-4" />
               설정 저장
             </button>
           </div>

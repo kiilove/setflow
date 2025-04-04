@@ -1,10 +1,21 @@
 "use client";
 
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { FaSave, FaTimes } from "react-icons/fa";
 import { getButtonVariantClass } from "../../utils/themeUtils";
 import { formatFileSize } from "../../utils/fileUtils";
 import specTemplates from "../../data/specTemplates";
+import {
+  Save,
+  X,
+  Tag,
+  ClipboardList,
+  Settings,
+  DollarSign,
+  User,
+  TrendingDown,
+  Paperclip,
+  FileText,
+} from "lucide-react";
 
 // 컴포넌트 임포트
 import CategorySection from "./CategorySection";
@@ -408,14 +419,46 @@ const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
 
   // 섹션 데이터 - 사용자 스토리에 맞게 순서 재구성
   const sections = [
-    { id: 1, title: "카테고리 선택", icon: "🏷️" },
-    { id: 2, title: "기본 정보", icon: "📋" },
-    { id: 3, title: "사양 정보", icon: "⚙️" },
-    { id: 4, title: "구매 정보", icon: "💰" },
-    { id: 5, title: "할당 정보", icon: "👤" },
-    { id: 6, title: "감가상각", icon: "📉" },
-    { id: 7, title: "이미지 및 첨부파일", icon: "📎" },
-    { id: 8, title: "비고", icon: "📝" },
+    {
+      id: 1,
+      title: "카테고리 선택",
+      icon: <Tag className="h-5 w-5 text-purple-500" />,
+    },
+    {
+      id: 2,
+      title: "기본 정보",
+      icon: <ClipboardList className="h-5 w-5 text-blue-500" />,
+    },
+    {
+      id: 3,
+      title: "사양 정보",
+      icon: <Settings className="h-5 w-5 text-green-500" />,
+    },
+    {
+      id: 4,
+      title: "구매 정보",
+      icon: <DollarSign className="h-5 w-5 text-yellow-500" />,
+    },
+    {
+      id: 5,
+      title: "할당 정보",
+      icon: <User className="h-5 w-5 text-red-500" />,
+    },
+    {
+      id: 6,
+      title: "감가상각",
+      icon: <TrendingDown className="h-5 w-5 text-cyan-500" />,
+    },
+    {
+      id: 7,
+      title: "이미지 및 첨부파일",
+      icon: <Paperclip className="h-5 w-5 text-indigo-500" />,
+    },
+    {
+      id: 8,
+      title: "비고",
+      icon: <FileText className="h-5 w-5 text-pink-500" />,
+    },
   ];
 
   // 모바일 상태 업데이트
@@ -485,7 +528,7 @@ const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
                 }`}
               >
                 <div className="flex items-center justify-center w-8 h-8">
-                  <span className="text-xl">{section.icon}</span>
+                  {section.icon}
                 </div>
                 <span className="ml-2">{section.title}</span>
               </button>
@@ -505,7 +548,7 @@ const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
           >
             <div className="rounded-lg border border-border bg-card p-6 shadow-md">
               <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <span className="text-2xl mr-2">🏷️</span>
+                <Tag className="mr-3 h-5 w-5 text-purple-500" />
                 <h2 className="text-xl font-semibold text-foreground">
                   카테고리 선택
                 </h2>
@@ -525,7 +568,7 @@ const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
           >
             <div className="rounded-lg border border-border bg-card p-6 shadow-md">
               <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <span className="text-2xl mr-2">📋</span>
+                <ClipboardList className="mr-3 h-5 w-5 text-blue-500" />
                 <h2 className="text-xl font-semibold text-foreground">
                   기본 정보
                 </h2>
@@ -545,7 +588,7 @@ const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
           >
             <div className="rounded-lg border border-border bg-card p-6 shadow-md">
               <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <span className="text-2xl mr-2">⚙️</span>
+                <Settings className="mr-3 h-5 w-5 text-green-500" />
                 <h2 className="text-xl font-semibold text-foreground">
                   사양 정보
                 </h2>
@@ -571,7 +614,7 @@ const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
           >
             <div className="rounded-lg border border-border bg-card p-6 shadow-md">
               <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <span className="text-2xl mr-2">💰</span>
+                <DollarSign className="mr-3 h-5 w-5 text-yellow-500" />
                 <h2 className="text-xl font-semibold text-foreground">
                   구매 정보
                 </h2>
@@ -591,7 +634,7 @@ const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
           >
             <div className="rounded-lg border border-border bg-card p-6 shadow-md">
               <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <span className="text-2xl mr-2">👤</span>
+                <User className="mr-3 h-5 w-5 text-red-500" />
                 <h2 className="text-xl font-semibold text-foreground">
                   할당 정보
                 </h2>
@@ -611,7 +654,7 @@ const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
           >
             <div className="rounded-lg border border-border bg-card p-6 shadow-md">
               <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <span className="text-2xl mr-2">📉</span>
+                <TrendingDown className="mr-3 h-5 w-5 text-cyan-500" />
                 <h2 className="text-xl font-semibold text-foreground">
                   감가상각 정보
                 </h2>
@@ -632,7 +675,7 @@ const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
           >
             <div className="rounded-lg border border-border bg-card p-6 shadow-md">
               <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <span className="text-2xl mr-2">📎</span>
+                <Paperclip className="mr-3 h-5 w-5 text-indigo-500" />
                 <h2 className="text-xl font-semibold text-foreground">
                   이미지 및 첨부파일
                 </h2>
@@ -663,7 +706,7 @@ const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
           >
             <div className="rounded-lg border border-border bg-card p-6 shadow-md">
               <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <span className="text-2xl mr-2">📝</span>
+                <FileText className="mr-3 h-5 w-5 text-pink-500" />
                 <h2 className="text-xl font-semibold text-foreground">비고</h2>
               </div>
               <NotesSection
@@ -682,7 +725,7 @@ const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
                 "outline"
               )} inline-flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors`}
             >
-              <FaTimes className="mr-2 -ml-1 h-4 w-4" />
+              <X className="mr-2 -ml-1 h-4 w-4" />
               취소
             </button>
             <button
@@ -691,7 +734,7 @@ const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
                 "primary"
               )} inline-flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors`}
             >
-              <FaSave className="mr-2 -ml-1 h-4 w-4" />
+              <Save className="mr-2 -ml-1 h-4 w-4" />
               저장
             </button>
           </div>
@@ -712,7 +755,7 @@ const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
               }`}
               aria-label={section.title}
             >
-              <span className="text-xl">{section.icon}</span>
+              {section.icon}
             </button>
           ))}
         </div>

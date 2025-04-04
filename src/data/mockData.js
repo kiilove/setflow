@@ -406,6 +406,197 @@ export const backupHistory = [
   },
 ];
 
+// 카테고리 데이터 추가
+export const categoriesData = [
+  {
+    id: 1,
+    name: "데스크탑",
+    description: "데스크탑 컴퓨터 및 워크스테이션",
+    count: 15,
+    specFieldsCount: 6,
+    icon: "Monitor",
+    iconColor: "bg-blue-100",
+    iconTextColor: "text-blue-500",
+    iconColorName: "파랑",
+    depreciation: {
+      method: "straight-line",
+      years: 4,
+      residualValueType: "percentage",
+      residualValue: 10,
+    },
+  },
+  {
+    id: 2,
+    name: "노트북",
+    description: "노트북 및 휴대용 컴퓨터",
+    count: 28,
+    specFieldsCount: 8,
+    icon: "Laptop",
+    iconColor: "bg-purple-100",
+    iconTextColor: "text-purple-500",
+    iconColorName: "보라",
+    depreciation: {
+      method: "straight-line",
+      years: 3,
+      residualValueType: "fixed",
+      residualValue: 100000,
+    },
+  },
+  {
+    id: 3,
+    name: "모니터",
+    description: "모니터 및 디스플레이 장치",
+    count: 22,
+    specFieldsCount: 6,
+    icon: "Tv",
+    iconColor: "bg-green-100",
+    iconTextColor: "text-green-500",
+    iconColorName: "초록",
+    depreciation: {
+      method: "straight-line",
+      years: 5,
+      residualValueType: "percentage",
+      residualValue: 5,
+    },
+  },
+  {
+    id: 4,
+    name: "모바일기기",
+    description: "스마트폰, 태블릿 등 모바일 기기",
+    count: 18,
+    specFieldsCount: 7,
+    icon: "Smartphone",
+    iconColor: "bg-yellow-100",
+    iconTextColor: "text-yellow-500",
+    iconColorName: "노랑",
+    depreciation: {
+      method: "straight-line",
+      years: 2,
+      residualValueType: "fixed",
+      residualValue: 50000,
+    },
+  },
+  {
+    id: 5,
+    name: "주변기기",
+    description: "키보드, 마우스, 웹캠 등 주변기기",
+    count: 35,
+    specFieldsCount: 3,
+    icon: "Mouse",
+    iconColor: "bg-red-100",
+    iconTextColor: "text-red-500",
+    iconColorName: "빨강",
+    depreciation: {
+      method: "straight-line",
+      years: 3,
+      residualValueType: "percentage",
+      residualValue: 10,
+    },
+  },
+  {
+    id: 6,
+    name: "사무기기",
+    description: "프린터, 스캐너, 복합기 등 사무기기",
+    count: 12,
+    specFieldsCount: 4,
+    icon: "Printer",
+    iconColor: "bg-orange-100",
+    iconTextColor: "text-orange-500",
+    iconColorName: "주황",
+    depreciation: {
+      method: "straight-line",
+      years: 5,
+      residualValueType: "fixed",
+      residualValue: 100000,
+    },
+  },
+  {
+    id: 7,
+    name: "서버",
+    description: "서버 및 서버 관련 장비",
+    count: 8,
+    specFieldsCount: 6,
+    icon: "Server",
+    iconColor: "bg-indigo-100",
+    iconTextColor: "text-indigo-500",
+    iconColorName: "남색",
+    depreciation: {
+      method: "straight-line",
+      years: 4,
+      residualValueType: "percentage",
+      residualValue: 12,
+    },
+  },
+  {
+    id: 8,
+    name: "네트워크장비",
+    description: "라우터, 스위치 등 네트워크 장비",
+    count: 14,
+    specFieldsCount: 4,
+    icon: "Network",
+    iconColor: "bg-teal-100",
+    iconTextColor: "text-teal-500",
+    iconColorName: "청록",
+    depreciation: {
+      method: "straight-line",
+      years: 3,
+      residualValueType: "fixed",
+      residualValue: 50000,
+    },
+  },
+  {
+    id: 9,
+    name: "소프트웨어",
+    description: "소프트웨어 및 라이센스",
+    count: 42,
+    specFieldsCount: 4,
+    icon: "FileCode",
+    iconColor: "bg-pink-100",
+    iconTextColor: "text-pink-500",
+    iconColorName: "분홍",
+    depreciation: {
+      method: "straight-line",
+      years: 1,
+      residualValueType: "fixed",
+      residualValue: 0,
+    },
+  },
+  {
+    id: 10,
+    name: "가구",
+    description: "책상, 의자 등 사무용 가구",
+    count: 56,
+    specFieldsCount: 4,
+    icon: "Armchair",
+    iconColor: "bg-gray-100",
+    iconTextColor: "text-gray-500",
+    iconColorName: "기본",
+    depreciation: {
+      method: "straight-line",
+      years: 7,
+      residualValueType: "percentage",
+      residualValue: 2,
+    },
+  },
+  {
+    id: 11,
+    name: "기타",
+    description: "기타 분류되지 않은 자산",
+    count: 8,
+    specFieldsCount: 0,
+    icon: "Package",
+    iconColor: "bg-gray-100",
+    iconTextColor: "text-gray-500",
+    iconColorName: "기본",
+    depreciation: {
+      method: "straight-line",
+      years: 5,
+      residualValueType: "fixed",
+      residualValue: 10000,
+    },
+  },
+];
+
 // 데이터 접근 함수
 // 이 함수들은 추후 실제 API 호출로 대체될 예정입니다.
 export const fetchData = {
@@ -480,6 +671,37 @@ export const fetchData = {
   // 백업 복원하기 (더미 함수)
   restoreBackup: (id) => {
     console.log(`백업 ID ${id} 복원`);
+    return Promise.resolve({ success: true });
+  },
+
+  // 카테고리 데이터 가져오기
+  getCategories: () => {
+    return Promise.resolve(categoriesData);
+  },
+
+  // 카테고리 상세 정보 가져오기
+  getCategoryById: (id) => {
+    const category = categoriesData.find(
+      (category) => category.id === Number.parseInt(id)
+    );
+    return Promise.resolve(category || null);
+  },
+
+  // 카테고리 추가하기 (더미 함수)
+  addCategory: (category) => {
+    console.log("카테고리 추가:", category);
+    return Promise.resolve({ success: true, id: Date.now() });
+  },
+
+  // 카테고리 업데이트하기 (더미 함수)
+  updateCategory: (id, category) => {
+    console.log(`카테고리 ID ${id} 업데이트:`, category);
+    return Promise.resolve({ success: true });
+  },
+
+  // 카테고리 삭제하기 (더미 함수)
+  deleteCategory: (id) => {
+    console.log(`카테고리 ID ${id} 삭제`);
     return Promise.resolve({ success: true });
   },
 };

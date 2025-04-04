@@ -3,12 +3,10 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import PageContainer from "../../components/common/PageContainer";
 import SettingsMenu from "../../components/settings/SettingsMenu";
 import SettingsGeneral from "../../components/settings/SettingsGeneral";
-import SettingsTheme from "../../components/settings/SettingsTheme";
 import SettingsSystem from "../../components/settings/SettingsSystem";
 import SettingsNotifications from "../../components/settings/SettingsNotifications";
 import SettingsBackup from "../../components/settings/SettingsBackup";
 import SettingsAdmin from "../../components/settings/SettingsAdmin";
-import { ThemeProvider } from "../../context/ThemeContext";
 
 const Settings = () => {
   const location = useLocation();
@@ -40,9 +38,6 @@ const Settings = () => {
               element={
                 <div className="space-y-6">
                   <SettingsGeneral />
-                  <ThemeProvider>
-                    <SettingsTheme />
-                  </ThemeProvider>
                   <SettingsSystem />
                 </div>
               }

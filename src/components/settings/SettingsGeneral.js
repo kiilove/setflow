@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FaGlobe, FaSave, FaCheck } from "react-icons/fa";
+import { Settings, Globe, Save, CheckCircle } from "lucide-react";
 
 const SettingsGeneral = () => {
   const [generalSettings, setGeneralSettings] = useState({
@@ -40,14 +40,15 @@ const SettingsGeneral = () => {
       {/* 설정 저장 성공 메시지 */}
       {saveSuccess && (
         <div className="mb-6 p-4 rounded-md bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-300 flex items-center">
-          <FaCheck className="mr-2" />
+          <CheckCircle className="mr-2 h-4 w-4" />
           <span>설정이 성공적으로 저장되었습니다.</span>
         </div>
       )}
 
       <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border theme-transition">
         <div className="p-4 border-b border-border theme-transition">
-          <h3 className="text-lg font-medium text-foreground theme-transition">
+          <h3 className="text-lg font-medium text-foreground theme-transition flex items-center">
+            <Settings className="mr-2 h-5 w-5" />
             일반 설정
           </h3>
         </div>
@@ -146,7 +147,7 @@ const SettingsGeneral = () => {
             {/* 지역 및 언어 설정 */}
             <div className="mt-6 space-y-4">
               <h4 className="text-md font-medium text-foreground theme-transition flex items-center">
-                <FaGlobe className="mr-2 text-blue-500" />
+                <Globe className="mr-2 h-5 w-5 text-blue-500" />
                 지역 및 언어 설정
               </h4>
 
@@ -203,7 +204,7 @@ const SettingsGeneral = () => {
                 onClick={handleSaveSettings}
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
               >
-                <FaSave className="mr-2 -ml-1 h-4 w-4" />
+                <Save className="mr-2 -ml-1 h-4 w-4" />
                 설정 저장
               </button>
             </div>

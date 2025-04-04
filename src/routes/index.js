@@ -1,14 +1,16 @@
 import {
-  FaHome,
-  FaTachometerAlt,
-  FaBoxes,
-  FaListAlt,
-  FaTools,
-  FaChartBar,
-  FaUsers,
-  FaCog,
-  FaMapMarkerAlt,
-} from "react-icons/fa";
+  HomeIcon,
+  LayoutDashboard,
+  Package,
+  ListTodo,
+  Wrench,
+  BarChart3,
+  UsersIcon,
+  SettingsIcon,
+  MapPin,
+  Building2,
+  Laptop,
+} from "lucide-react";
 
 // Import page components
 import Home from "../pages/home/Home";
@@ -48,12 +50,21 @@ import LocationsMap from "../pages/locations/LocationsMap";
 // 사용자 관리
 import Users from "../pages/users/Users";
 import UsersAdd from "../pages/users/UsersAdd";
+import UsersEdit from "../pages/users/UsersEdit";
 import UsersPermissions from "../pages/users/UsersPermissions";
-import Departments from "../pages/users/Departments";
+
+// 부서 관리
+import Departments from "../pages/departments/Departments";
+import DepartmentsAdd from "../pages/departments/DepartmentsAdd";
+import DepartmentsEdit from "../pages/departments/DepartmentsEdit";
+import DepartmentsDetail from "../pages/departments/DepartmentsDetail";
 
 // 설정
 import Settings from "../pages/settings/Settings";
 import AssetsEdit from "../pages/assets/AssetsEdit";
+
+// 클라이언트 PC
+import ClientPCs from "../pages/client-pcs/ClientPCs";
 
 /**
  * 라우트 구조 정의
@@ -72,7 +83,7 @@ const routes = [
     path: "/",
     component: Home,
     title: "홈",
-    icon: FaHome,
+    icon: HomeIcon,
     showInSidebar: true,
   },
   {
@@ -80,7 +91,7 @@ const routes = [
     path: "/dashboard",
     component: Dashboard,
     title: "대시보드",
-    icon: FaTachometerAlt,
+    icon: LayoutDashboard,
     showInSidebar: true,
     children: [
       {
@@ -106,7 +117,7 @@ const routes = [
     path: "/assets",
     component: Assets,
     title: "자산 관리",
-    icon: FaBoxes,
+    icon: Package,
     showInSidebar: true,
     children: [
       {
@@ -156,7 +167,7 @@ const routes = [
     path: "/categories",
     component: Categories,
     title: "자산 카테고리",
-    icon: FaListAlt,
+    icon: ListTodo,
     showInSidebar: true,
     children: [
       {
@@ -199,7 +210,7 @@ const routes = [
     path: "/maintenance",
     component: Maintenance,
     title: "유지보수",
-    icon: FaTools,
+    icon: Wrench,
     showInSidebar: true,
     children: [
       {
@@ -230,45 +241,11 @@ const routes = [
   },
 
   {
-    id: "locations",
-    path: "/locations",
-    component: Locations,
-    title: "위치 관리",
-    icon: FaMapMarkerAlt,
-    showInSidebar: true,
-    children: [
-      {
-        id: "locations-list",
-        path: "/locations",
-        component: Locations,
-        title: "위치 목록",
-        parent: "locations",
-        showInSidebar: true,
-      },
-      {
-        id: "locations-add",
-        path: "/locations/add",
-        component: LocationsAdd,
-        title: "위치 추가",
-        parent: "locations",
-        showInSidebar: true,
-      },
-      {
-        id: "locations-map",
-        path: "/locations/map",
-        component: LocationsMap,
-        title: "위치 지도",
-        parent: "locations",
-        showInSidebar: true,
-      },
-    ],
-  },
-  {
     id: "reports",
     path: "/reports",
     component: Reports,
     title: "보고서",
-    icon: FaChartBar,
+    icon: BarChart3,
     showInSidebar: true,
     children: [
       {
@@ -309,8 +286,8 @@ const routes = [
     id: "users",
     path: "/users",
     component: Users,
-    title: "부서 관리",
-    icon: FaUsers,
+    title: "구성원 관리",
+    icon: UsersIcon,
     showInSidebar: true,
     children: [
       {
@@ -338,11 +315,87 @@ const routes = [
         showInSidebar: true,
       },
       {
-        id: "users-departments",
-        path: "/users/departments",
-        component: Departments,
-        title: "부서 관리",
+        id: "users-edit",
+        path: "/users/edit/:id",
+        component: UsersEdit,
+        title: "사용자 수정",
         parent: "users",
+        showInSidebar: false,
+      },
+    ],
+  },
+  {
+    id: "departments",
+    path: "/departments",
+    component: Departments,
+    title: "부서 관리",
+    icon: Building2,
+    showInSidebar: true,
+    children: [
+      {
+        id: "departments-list",
+        path: "/departments",
+        component: Departments,
+        title: "부서 목록",
+        parent: "departments",
+        showInSidebar: true,
+      },
+      {
+        id: "departments-add",
+        path: "/departments/add",
+        component: DepartmentsAdd,
+        title: "부서 추가",
+        parent: "departments",
+        showInSidebar: true,
+      },
+      {
+        id: "departments-edit",
+        path: "/departments/edit/:id",
+        component: DepartmentsEdit,
+        title: "부서 수정",
+        parent: "departments",
+        showInSidebar: false,
+      },
+      {
+        id: "departments-detail",
+        path: "/departments/detail/:id",
+        component: DepartmentsDetail,
+        title: "부서 상세",
+        parent: "departments",
+        showInSidebar: false,
+      },
+    ],
+  },
+  {
+    id: "locations",
+    path: "/locations",
+    component: Locations,
+    title: "위치 관리",
+    icon: MapPin,
+    showInSidebar: true,
+    children: [
+      {
+        id: "locations-list",
+        path: "/locations",
+        component: Locations,
+        title: "위치 목록",
+        parent: "locations",
+        showInSidebar: true,
+      },
+      {
+        id: "locations-add",
+        path: "/locations/add",
+        component: LocationsAdd,
+        title: "위치 추가",
+        parent: "locations",
+        showInSidebar: true,
+      },
+      {
+        id: "locations-map",
+        path: "/locations/map",
+        component: LocationsMap,
+        title: "위치 지도",
+        parent: "locations",
         showInSidebar: true,
       },
     ],
@@ -352,7 +405,16 @@ const routes = [
     path: "/settings/*",
     component: Settings,
     title: "설정",
-    icon: FaCog,
+    icon: SettingsIcon,
+    showInSidebar: true,
+  },
+  // 클라이언트 PC 페이지 추가
+  {
+    id: "client-pcs",
+    path: "/client-pcs",
+    component: ClientPCs,
+    title: "클라이언트 PC",
+    icon: Laptop,
     showInSidebar: true,
   },
 ];
@@ -375,9 +437,18 @@ export const flattenRoutes = (routesArray) => {
   return flatRoutes;
 };
 
-// 사이드바에 표시할 라우트만 필터링
+// 사이드바에 표시할 라우트만 필터링 - 수정된 부분
 export const getSidebarRoutes = () => {
-  return routes.filter((route) => route.showInSidebar);
+  return routes.filter((route) => {
+    if (!route.showInSidebar) return false;
+
+    // 하위 라우트도 필터링
+    if (route.children) {
+      route.children = route.children.filter((child) => child.showInSidebar);
+    }
+
+    return true;
+  });
 };
 
 // 모든 라우트 반환 (React Router에서 사용)

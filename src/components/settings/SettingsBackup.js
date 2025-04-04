@@ -6,6 +6,7 @@ import {
   getStatusColorClass,
   getButtonVariantClass,
 } from "../../utils/themeUtils";
+import { Database, CheckCircle } from "lucide-react";
 
 const SettingsBackup = () => {
   const [backupHistory, setBackupHistory] = useState([]);
@@ -76,7 +77,10 @@ const SettingsBackup = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">백업 및 복원</h2>
+        <h2 className="text-xl font-semibold flex items-center">
+          <Database className="mr-2 h-5 w-5 text-blue-500" />
+          백업 및 복원
+        </h2>
         <button
           onClick={handleCreateBackup}
           disabled={loading}
@@ -89,7 +93,12 @@ const SettingsBackup = () => {
       </div>
 
       {message && (
-        <div className={`p-4 rounded-md ${getStatusColorClass(message.type)}`}>
+        <div
+          className={`p-4 rounded-md ${getStatusColorClass(
+            message.type
+          )} flex items-center`}
+        >
+          <CheckCircle className="mr-2 h-4 w-4" />
           {message.text}
         </div>
       )}

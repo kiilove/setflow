@@ -6,9 +6,6 @@ import {
   FaChartBar,
   FaTools,
   FaExclamationTriangle,
-  FaPlus,
-  FaSearch,
-  FaChartLine,
   FaArrowRight,
 } from "react-icons/fa";
 
@@ -124,55 +121,6 @@ const DashboardStats = ({ assetStats }) => {
               전체 자산의{" "}
               {Math.round((assetStats.inactive / assetStats.total) * 100)}%
             </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 빠른 액션 */}
-      <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border theme-transition mb-6">
-        <div className="p-4 border-b border-border theme-transition">
-          <h3 className="text-lg font-medium text-foreground theme-transition">
-            빠른 액션
-          </h3>
-        </div>
-        <div className="p-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link
-              to="/assets/add"
-              className="flex flex-col items-center justify-center p-4 rounded-md bg-primary/10 hover:bg-primary/20 transition-colors"
-            >
-              <FaPlus className="h-6 w-6 text-primary mb-2" />
-              <span className="text-sm font-medium text-foreground theme-transition">
-                자산 추가
-              </span>
-            </Link>
-            <Link
-              to="/maintenance/schedule"
-              className="flex flex-col items-center justify-center p-4 rounded-md bg-yellow-500/10 hover:bg-yellow-500/20 transition-colors"
-            >
-              <FaTools className="h-6 w-6 text-yellow-500 mb-2" />
-              <span className="text-sm font-medium text-foreground theme-transition">
-                유지보수 일정
-              </span>
-            </Link>
-            <Link
-              to="/reports/assets"
-              className="flex flex-col items-center justify-center p-4 rounded-md bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
-            >
-              <FaChartLine className="h-6 w-6 text-blue-500 mb-2" />
-              <span className="text-sm font-medium text-foreground theme-transition">
-                보고서 생성
-              </span>
-            </Link>
-            <Link
-              to="/assets"
-              className="flex flex-col items-center justify-center p-4 rounded-md bg-green-500/10 hover:bg-green-500/20 transition-colors"
-            >
-              <FaSearch className="h-6 w-6 text-green-500 mb-2" />
-              <span className="text-sm font-medium text-foreground theme-transition">
-                자산 검색
-              </span>
-            </Link>
           </div>
         </div>
       </div>

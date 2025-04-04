@@ -1,8 +1,11 @@
+import { Server, Database, AlertCircle } from "lucide-react";
+
 const SettingsSystem = () => {
   return (
     <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border theme-transition">
       <div className="p-4 border-b border-border theme-transition">
-        <h3 className="text-lg font-medium text-foreground theme-transition">
+        <h3 className="text-lg font-medium text-foreground theme-transition flex items-center">
+          <Server className="mr-2 h-5 w-5 text-purple-500" />
           시스템 정보
         </h3>
       </div>
@@ -41,7 +44,8 @@ const SettingsSystem = () => {
         </div>
 
         <div className="mt-4 p-4 rounded-md bg-blue-500/10 border border-blue-500/20 theme-transition">
-          <p className="text-sm text-foreground theme-transition">
+          <p className="text-sm text-foreground theme-transition flex items-center">
+            <AlertCircle className="mr-2 h-4 w-4 text-blue-500" />
             <span className="font-medium">참고:</span> 시스템 업데이트는 매월
             15일에 자동으로 진행됩니다. 업데이트 전에 데이터 백업을 권장합니다.
           </p>
@@ -49,7 +53,8 @@ const SettingsSystem = () => {
 
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-3 rounded-md bg-muted/50 theme-transition">
-            <p className="text-sm font-medium text-muted-foreground theme-transition">
+            <p className="text-sm font-medium text-muted-foreground theme-transition flex items-center">
+              <Server className="mr-2 h-4 w-4 text-purple-500" />
               서버 상태
             </p>
             <div className="flex items-center mt-1">
@@ -58,7 +63,8 @@ const SettingsSystem = () => {
             </div>
           </div>
           <div className="p-3 rounded-md bg-muted/50 theme-transition">
-            <p className="text-sm font-medium text-muted-foreground theme-transition">
+            <p className="text-sm font-medium text-muted-foreground theme-transition flex items-center">
+              <Database className="mr-2 h-4 w-4 text-blue-500" />
               메모리 사용량
             </p>
             <div className="w-full bg-muted rounded-full h-2.5 mt-2 theme-transition">

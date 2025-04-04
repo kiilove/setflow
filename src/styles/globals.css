@@ -47,8 +47,9 @@
     --card-foreground: 237 233 254;
     --popover: 31 41 55;
     --popover-foreground: 237 233 254;
-    --primary: 79 70 229;
-    --primary-foreground: 237 233 254;
+    /* 보라색(79 70 229)에서 파란색(59 130 246)으로 변경 */
+    --primary: 59 130 246;
+    --primary-foreground: 255 255 255;
     --secondary: 55 65 81;
     --secondary-foreground: 237 233 254;
     --muted: 55 65 81;
@@ -59,7 +60,8 @@
     --destructive-foreground: 15 23 42;
     --border: 55 65 81;
     --input: 55 65 81;
-    --ring: 79 70 229;
+    /* 링 색상도 일치시킴 */
+    --ring: 59 130 246;
 
     /* 추가 색상 변수 */
     --success: 5 150 105;
@@ -186,7 +188,7 @@
 }
 
 .dark .button-primary {
-  @apply bg-indigo-600 hover:bg-indigo-700 text-white;
+  @apply bg-blue-600 hover:bg-blue-700 text-white;
 }
 
 .dark .button-secondary {
@@ -194,7 +196,7 @@
 }
 
 .dark .input-field {
-  @apply border-gray-600 bg-gray-700 focus:border-indigo-500 focus:ring-indigo-500;
+  @apply border-gray-600 bg-gray-700 focus:border-blue-500 focus:ring-blue-500;
 }
 
 .dark .table-header {
@@ -206,7 +208,7 @@
 }
 
 .dark .nav-item-active {
-  @apply bg-indigo-900 text-indigo-200;
+  @apply bg-blue-900 text-blue-200;
 }
 
 .dark .nav-item {
