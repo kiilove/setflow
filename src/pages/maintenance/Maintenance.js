@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Plus, Filter, Calendar, List } from "lucide-react";
 import PageContainer from "../../components/common/PageContainer";
 import MaintenanceTable from "../../components/maintenance/MaintenanceTable";
-import { getButtonVariantClass } from "../../utils/themeUtils";
 import { dataService } from "../../data/mockData";
+import MaintenanceStats from "../../components/maintenance/";
+import MaintenanceGrid from "../../components/maintenance/MaintenanceGrid";
+import MaintenanceSearch from "../../components/maintenance/MaintenanceSearch";
+import MaintenanceEmptyState from "../../components/maintenance/MaintenanceEmptyState";
 
 const Maintenance = () => {
   const [maintenanceData, setMaintenanceData] = useState([]);
@@ -17,9 +19,13 @@ const Maintenance = () => {
   const [filterPriority, setFilterPriority] = useState("");
   const [sortBy, setSortBy] = useState("scheduledDate");
   const [sortOrder, setSortOrder] = useState("asc");
-  const [viewMode, setViewMode] = useState("list"); // 'list' or 'calendar'
+  const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'list' or 'calendar'
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const navigate = useNavigate();
+
+  // 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // 유지보수 데이터 로드
   useEffect(() => {
@@ -100,6 +106,21 @@ const Maintenance = () => {
 
     return sortOrder === "asc" ? comparison : -comparison;
   });
+
+  // 페이지네이션 계산
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = sortedMaintenance.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+
+  const totalPages = Math.ceil(sortedMaintenance.length / itemsPerPage);
+
+  // 페이지 변경 핸들러
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
 
   // 삭제 핸들러
   const handleDelete = (id, assetName) => {
@@ -197,117 +218,81 @@ const Maintenance = () => {
     );
   };
 
-  return (
-    <PageContainer>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="text-2xl font-bold">유지보수 관리</h1>
-          <div className="flex gap-2">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setViewMode("list")}
-                className={`flex items-center gap-1 px-3 py-2 rounded-md ${
-                  viewMode === "list"
-                    ? getButtonVariantClass("primary")
-                    : getButtonVariantClass("secondary")
-                }`}
-              >
-                <List className="h-4 w-4" />
-                <span>목록</span>
-              </button>
-              <button
-                onClick={() => setViewMode("calendar")}
-                className={`flex items-center gap-1 px-3 py-2 rounded-md ${
-                  viewMode === "calendar"
-                    ? getButtonVariantClass("primary")
-                    : getButtonVariantClass("secondary")
-                }`}
-              >
-                <Calendar className="h-4 w-4" />
-                <span>캘린더</span>
-              </button>
-            </div>
-            <Link
-              to="/maintenance/add"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md transition-colors flex items-center"
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              유지보수 추가
-            </Link>
-          </div>
+  // 상태별 카운트 계산
+  const scheduledCount = maintenanceData.filter(
+    (item) => item.status === "예정"
+  ).length;
+  const inProgressCount = maintenanceData.filter(
+    (item) => item.status === "진행중"
+  ).length;
+  const completedCount = maintenanceData.filter(
+    (item) => item.status === "완료"
+  ).length;
+
+  if (loading) {
+    return (
+      <PageContainer title="유지보수 관리">
+        <div className="flex justify-center items-center h-64">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <span className="ml-2 text-muted-foreground">로딩 중...</span>
         </div>
+      </PageContainer>
+    );
+  }
+
+  return (
+    <PageContainer title="유지보수 관리">
+      <div className="space-y-6">
+        {/* 요약 통계 */}
+        <MaintenanceStats
+          totalMaintenance={maintenanceData.length}
+          scheduledCount={scheduledCount}
+          inProgressCount={inProgressCount}
+          completedCount={completedCount}
+        />
 
         {/* 검색 및 필터 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <input
-              type="text"
-              placeholder="자산명, 기술자 또는 유형 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          </div>
+        <MaintenanceSearch
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          filterStatus={filterStatus}
+          setFilterStatus={setFilterStatus}
+          filterType={filterType}
+          setFilterType={setFilterType}
+          filterPriority={filterPriority}
+          setFilterPriority={setFilterPriority}
+          maintenanceTypes={maintenanceTypes}
+        />
 
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="">모든 상태</option>
-              <option value="예정">진행 예정</option>
-              <option value="진행중">진행중</option>
-              <option value="완료">완료</option>
-              <option value="취소">취소</option>
-            </select>
-          </div>
+        {/* 유지보수 없음 */}
+        {filteredMaintenance.length === 0 && !loading && (
+          <MaintenanceEmptyState />
+        )}
 
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="">모든 유형</option>
-              {maintenanceTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* 유지보수 목록 - 그리드 뷰 */}
+        {viewMode === "grid" && filteredMaintenance.length > 0 && (
+          <MaintenanceGrid
+            maintenanceData={currentItems}
+            handleDelete={handleDelete}
+          />
+        )}
 
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <select
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="">모든 우선순위</option>
-              <option value="높음">높음</option>
-              <option value="중간">중간</option>
-              <option value="낮음">낮음</option>
-            </select>
-          </div>
-        </div>
-
-        {viewMode === "list" ? (
-          // 목록 보기
+        {/* 유지보수 목록 - 테이블 뷰 */}
+        {viewMode === "list" && filteredMaintenance.length > 0 && (
           <MaintenanceTable
-            maintenanceData={sortedMaintenance}
+            maintenanceData={currentItems}
             loading={loading}
             sortBy={sortBy}
             sortOrder={sortOrder}
             handleSort={handleSort}
             handleDelete={handleDelete}
           />
-        ) : (
-          // 캘린더 보기
+        )}
+
+        {/* 유지보수 목록 - 캘린더 뷰 */}
+        {viewMode === "calendar" && filteredMaintenance.length > 0 && (
           <div className="rounded-lg border border-border bg-card p-4 shadow-md">
             <div className="mb-4 flex justify-between items-center">
               <button
@@ -381,42 +366,61 @@ const Maintenance = () => {
           </div>
         )}
 
-        {/* 통계 요약 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border p-4">
-            <h3 className="text-sm font-medium text-muted-foreground mb-1">
-              총 유지보수
-            </h3>
-            <p className="text-2xl font-bold">{maintenanceData.length}</p>
+        {/* 페이지네이션 */}
+        {filteredMaintenance.length > 0 && totalPages > 1 && (
+          <div className="flex justify-between items-center mt-4">
+            <div className="text-sm text-muted-foreground">
+              총 {sortedMaintenance.length}개 항목 중 {indexOfFirstItem + 1}-
+              {Math.min(indexOfLastItem, sortedMaintenance.length)}개 표시
+            </div>
+            <div className="flex space-x-1">
+              <button
+                onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                이전
+              </button>
+
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`px-3 py-1 rounded-md border ${
+                      currentPage === pageNum
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border bg-card text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() =>
+                  handlePageChange(Math.min(totalPages, currentPage + 1))
+                }
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded-md border border-border bg-card text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                다음
+              </button>
+            </div>
           </div>
-          <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border p-4">
-            <h3 className="text-sm font-medium text-muted-foreground mb-1">
-              진행 예정
-            </h3>
-            <p className="text-2xl font-bold">
-              {maintenanceData.filter((item) => item.status === "예정").length}
-            </p>
-          </div>
-          <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border p-4">
-            <h3 className="text-sm font-medium text-muted-foreground mb-1">
-              진행 중
-            </h3>
-            <p className="text-2xl font-bold">
-              {
-                maintenanceData.filter((item) => item.status === "진행중")
-                  .length
-              }
-            </p>
-          </div>
-          <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border p-4">
-            <h3 className="text-sm font-medium text-muted-foreground mb-1">
-              완료
-            </h3>
-            <p className="text-2xl font-bold">
-              {maintenanceData.filter((item) => item.status === "완료").length}
-            </p>
-          </div>
-        </div>
+        )}
       </div>
     </PageContainer>
   );
