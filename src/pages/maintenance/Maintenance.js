@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import PageContainer from "../../components/common/PageContainer";
 import MaintenanceTable from "../../components/maintenance/MaintenanceTable";
 import { dataService } from "../../data/mockData";
-import MaintenanceStats from "../../components/maintenance/";
+import MaintenanceStats from "../../components/maintenance/MaintenanceStats";
 import MaintenanceGrid from "../../components/maintenance/MaintenanceGrid";
 import MaintenanceSearch from "../../components/maintenance/MaintenanceSearch";
 import MaintenanceEmptyState from "../../components/maintenance/MaintenanceEmptyState";
