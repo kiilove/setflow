@@ -27,6 +27,9 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import FancyLoadingLogo from "../../components/common/FancyLoadingLogo";
+import FullScreenLoading from "../../components/common/FullScreenLoading";
+import PageLoading from "../../components/common/PageLoading";
 
 const ClientPCs = () => {
   const [clientPCs, setClientPCs] = useState([]);
@@ -275,13 +278,9 @@ const ClientPCs = () => {
   };
 
   if (loading) {
-    return (
-      <PageContainer title="클라이언트 PC 현황">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        </div>
-      </PageContainer>
-    );
+    // return <PageLoading />;
+    return <PageLoading />;
+    // return <BounceLoadingLogo />;
   }
 
   return (

@@ -17,6 +17,13 @@ import Home from "../pages/home/Home";
 import Dashboard from "../pages/dashboard/Dashboard";
 import DashboardAnalytics from "../pages/dashboard/DashboardAnalytics";
 
+//인증 관리
+import Login from "../pages/auth/Login";
+import Register from "../pages/auth/Register";
+import ForgotPassword from "../pages/auth/ForgotPassword";
+import Terms from "../pages/terms";
+import CheckAuth from "../utils/checkAuth";
+
 // 자산 관리
 import Assets from "../pages/assets/Assets";
 import AssetsAdd from "../pages/assets/AssetsAdd";
@@ -51,6 +58,7 @@ import LocationsMap from "../pages/locations/LocationsMap";
 import Users from "../pages/users/Users";
 import UsersAdd from "../pages/users/UsersAdd";
 import UsersEdit from "../pages/users/UsersEdit";
+import UsersDetail from "../pages/users/UsersDetail";
 import UsersPermissions from "../pages/users/UsersPermissions";
 
 // 부서 관리
@@ -65,6 +73,9 @@ import AssetsEdit from "../pages/assets/AssetsEdit";
 
 // 클라이언트 PC
 import ClientPCs from "../pages/client-pcs/ClientPCs";
+import LocationsEdit from "../pages/locations/LocationsEdit";
+import MaintenanceEdit from "../pages/maintenance/MaintenanceEdit";
+import MaintenanceDetail from "../pages/maintenance/MaintenanceDetail";
 
 /**
  * 라우트 구조 정의
@@ -76,15 +87,61 @@ import ClientPCs from "../pages/client-pcs/ClientPCs";
  * parent: 부모 라우트 ID (Breadcrumb 생성에 사용)
  * showInSidebar: 사이드바에 표시 여부
  * children: 하위 라우트
+ * standalone: 독립 페이지 여부 (true인 경우 메인 레이아웃 없이 렌더링)
+ * requiresAuth: 인증이 필요한지 여부
  */
 const routes = [
+  // CheckAuth 컴포넌트를 루트 경로에 추가
+  {
+    id: "root",
+    path: "/",
+    component: CheckAuth,
+    title: "인증 확인",
+    showInSidebar: false,
+    standalone: true,
+  },
+  // 기존 홈 컴포넌트는 /home 경로로 변경
   {
     id: "home",
-    path: "/",
+    path: "/home",
     component: Home,
     title: "홈",
     icon: HomeIcon,
     showInSidebar: true,
+    requiresAuth: true, // 인증 필요 표시
+  },
+  // 인증 관련 라우트를 독립적인 페이지로 변경
+  {
+    id: "login",
+    path: "/auth/login",
+    component: Login,
+    title: "로그인",
+    showInSidebar: false,
+    standalone: true, // 독립 페이지로 표시
+  },
+  {
+    id: "register",
+    path: "/auth/register",
+    component: Register,
+    title: "회원가입",
+    showInSidebar: false,
+    standalone: true, // 독립 페이지로 표시
+  },
+  {
+    id: "forgot-password",
+    path: "/auth/forgot-password",
+    component: ForgotPassword,
+    title: "비밀번호 찾기",
+    showInSidebar: false,
+    standalone: true, // 독립 페이지로 표시
+  },
+  {
+    id: "terms",
+    path: "/terms",
+    component: Terms,
+    title: "이용약관",
+    showInSidebar: false,
+    standalone: true, // 독립 페이지로 표시
   },
   {
     id: "dashboard",
@@ -93,6 +150,7 @@ const routes = [
     title: "대시보드",
     icon: LayoutDashboard,
     showInSidebar: true,
+    requiresAuth: true, // 인증 필요 표시
     children: [
       {
         id: "dashboard-overview",
@@ -101,17 +159,22 @@ const routes = [
         title: "개요",
         parent: "dashboard",
         showInSidebar: true,
+        requiresAuth: true, // 인증 필요 표시
       },
+      // 클라이언트 PC 페이지 추가
       {
-        id: "dashboard-analytics",
-        path: "/dashboard/analytics",
-        component: DashboardAnalytics,
-        title: "분석",
+        id: "client-pcs",
+        path: "/client-pcs",
+        component: ClientPCs,
+        title: "클라이언트 PC",
         parent: "dashboard",
+        icon: Laptop,
         showInSidebar: true,
+        requiresAuth: true,
       },
     ],
   },
+  // 나머지 라우트에 requiresAuth: true 추가 (표시 생략)
   {
     id: "assets",
     path: "/assets",
@@ -119,6 +182,7 @@ const routes = [
     title: "자산 관리",
     icon: Package,
     showInSidebar: true,
+    requiresAuth: true,
     children: [
       {
         id: "assets-list",
@@ -127,6 +191,7 @@ const routes = [
         title: "자산 목록",
         parent: "assets",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "assets-add",
@@ -135,6 +200,7 @@ const routes = [
         title: "자산 등록",
         parent: "assets",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "assets-detail",
@@ -143,6 +209,7 @@ const routes = [
         title: "자산 상세",
         parent: "assets",
         showInSidebar: false,
+        requiresAuth: true,
       },
       {
         id: "assets-history",
@@ -151,6 +218,7 @@ const routes = [
         title: "자산 이력",
         parent: "assets",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "assets-edit",
@@ -159,6 +227,7 @@ const routes = [
         title: "자산 이력",
         parent: "assets",
         showInSidebar: false,
+        requiresAuth: true,
       },
     ],
   },
@@ -169,6 +238,7 @@ const routes = [
     title: "자산 카테고리",
     icon: ListTodo,
     showInSidebar: true,
+    requiresAuth: true,
     children: [
       {
         id: "categories-list",
@@ -177,6 +247,7 @@ const routes = [
         title: "카테고리 목록",
         parent: "categories",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "categories-add",
@@ -185,6 +256,7 @@ const routes = [
         title: "카테고리 추가",
         parent: "categories",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "categories-edit",
@@ -193,6 +265,7 @@ const routes = [
         title: "카테고리 편집",
         parent: "categories",
         showInSidebar: false,
+        requiresAuth: true,
       },
       {
         id: "categories-template",
@@ -201,10 +274,10 @@ const routes = [
         title: "사양 템플릿 편집",
         parent: "categories",
         showInSidebar: false,
+        requiresAuth: true,
       },
     ],
   },
-
   {
     id: "maintenance",
     path: "/maintenance",
@@ -212,6 +285,7 @@ const routes = [
     title: "유지보수",
     icon: Wrench,
     showInSidebar: true,
+    requiresAuth: true,
     children: [
       {
         id: "maintenance-list",
@@ -220,14 +294,7 @@ const routes = [
         title: "유지보수 목록",
         parent: "maintenance",
         showInSidebar: true,
-      },
-      {
-        id: "maintenance-schedule",
-        path: "/maintenance/schedule",
-        component: MaintenanceSchedule,
-        title: "유지보수 일정",
-        parent: "maintenance",
-        showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "maintenance-add",
@@ -236,10 +303,28 @@ const routes = [
         title: "유지보수 일정 등록",
         parent: "maintenance",
         showInSidebar: true,
+        requiresAuth: true,
+      },
+      {
+        id: "maintenance-edit",
+        path: "/maintenance/edit",
+        component: MaintenanceEdit,
+        title: "유지보수 일정 수정",
+        parent: "maintenance",
+        showInSidebar: false,
+        requiresAuth: true,
+      },
+      {
+        id: "maintenance-detail",
+        path: "/maintenance/detail/:id",
+        component: MaintenanceDetail,
+        title: "유지보수 일정 보기",
+        parent: "maintenance",
+        showInSidebar: false,
+        requiresAuth: true,
       },
     ],
   },
-
   {
     id: "reports",
     path: "/reports",
@@ -247,6 +332,7 @@ const routes = [
     title: "보고서",
     icon: BarChart3,
     showInSidebar: true,
+    requiresAuth: true,
     children: [
       {
         id: "reports-overview",
@@ -255,6 +341,7 @@ const routes = [
         title: "보고서 개요",
         parent: "reports",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "reports-assets",
@@ -263,6 +350,7 @@ const routes = [
         title: "자산 보고서",
         parent: "reports",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "reports-depreciation",
@@ -271,6 +359,7 @@ const routes = [
         title: "감가상각 보고서",
         parent: "reports",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "reports-maintenance",
@@ -279,6 +368,7 @@ const routes = [
         title: "유지보수 보고서",
         parent: "reports",
         showInSidebar: true,
+        requiresAuth: true,
       },
     ],
   },
@@ -289,6 +379,7 @@ const routes = [
     title: "구성원 관리",
     icon: UsersIcon,
     showInSidebar: true,
+    requiresAuth: true,
     children: [
       {
         id: "users-list",
@@ -297,6 +388,7 @@ const routes = [
         title: "사용자 목록",
         parent: "users",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "users-add",
@@ -305,6 +397,7 @@ const routes = [
         title: "사용자 추가",
         parent: "users",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "users-permissions",
@@ -313,6 +406,7 @@ const routes = [
         title: "권한 관리",
         parent: "users",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "users-edit",
@@ -321,6 +415,16 @@ const routes = [
         title: "사용자 수정",
         parent: "users",
         showInSidebar: false,
+        requiresAuth: true,
+      },
+      {
+        id: "users-detail",
+        path: "/users/detail/:id",
+        component: UsersDetail,
+        title: "사용자 보기",
+        parent: "users",
+        showInSidebar: false,
+        requiresAuth: true,
       },
     ],
   },
@@ -331,6 +435,7 @@ const routes = [
     title: "부서 관리",
     icon: Building2,
     showInSidebar: true,
+    requiresAuth: true,
     children: [
       {
         id: "departments-list",
@@ -339,6 +444,7 @@ const routes = [
         title: "부서 목록",
         parent: "departments",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "departments-add",
@@ -347,6 +453,7 @@ const routes = [
         title: "부서 추가",
         parent: "departments",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "departments-edit",
@@ -355,6 +462,7 @@ const routes = [
         title: "부서 수정",
         parent: "departments",
         showInSidebar: false,
+        requiresAuth: true,
       },
       {
         id: "departments-detail",
@@ -363,6 +471,7 @@ const routes = [
         title: "부서 상세",
         parent: "departments",
         showInSidebar: false,
+        requiresAuth: true,
       },
     ],
   },
@@ -373,6 +482,7 @@ const routes = [
     title: "위치 관리",
     icon: MapPin,
     showInSidebar: true,
+    requiresAuth: true,
     children: [
       {
         id: "locations-list",
@@ -381,6 +491,7 @@ const routes = [
         title: "위치 목록",
         parent: "locations",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "locations-add",
@@ -389,6 +500,7 @@ const routes = [
         title: "위치 추가",
         parent: "locations",
         showInSidebar: true,
+        requiresAuth: true,
       },
       {
         id: "locations-map",
@@ -397,6 +509,16 @@ const routes = [
         title: "위치 지도",
         parent: "locations",
         showInSidebar: true,
+        requiresAuth: true,
+      },
+      {
+        id: "locations-edit",
+        path: "/locations/edit/:id",
+        component: LocationsEdit,
+        title: "위치 수정",
+        parent: "locations",
+        showInSidebar: false,
+        requiresAuth: true,
       },
     ],
   },
@@ -407,15 +529,7 @@ const routes = [
     title: "설정",
     icon: SettingsIcon,
     showInSidebar: true,
-  },
-  // 클라이언트 PC 페이지 추가
-  {
-    id: "client-pcs",
-    path: "/client-pcs",
-    component: ClientPCs,
-    title: "클라이언트 PC",
-    icon: Laptop,
-    showInSidebar: true,
+    requiresAuth: true,
   },
 ];
 
@@ -517,6 +631,11 @@ export const getBreadcrumbsForPath = (path) => {
     // 파라미터가 있는 라우트 중 parent 속성이 있는 것을 우선
     currentRoute =
       potentialRoutes.find((route) => route.parent) || potentialRoutes[0];
+  }
+
+  // 일반 경로 처리
+  if (!currentRoute) {
+    // 먼저 parent 속성이 있는 라우트를 찾  || potentialRoutes[0]
   }
 
   // 일반 경로 처리

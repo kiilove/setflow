@@ -1,0 +1,96 @@
+/* 약관 페이지에서만 사용되는 스타일 */
+.termsContainer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: rgb(var(--background));
+}
+
+.termsContent {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 2rem;
+}
+
+/* 인쇄 시 스타일 */
+@media print {
+  .termsContainer {
+    position: static;
+    display: block;
+    background-color: white;
+    color: black;
+  }
+
+  .termsContent {
+    overflow: visible;
+    height: auto !important;
+  }
+
+  .noPrint {
+    display: none !important;
+  }
+
+  .printOnly {
+    display: block !important;
+  }
+
+  /* 인쇄 시 문서 스타일 */
+  .printDocument {
+    font-family: "Times New Roman", Times, serif;
+    line-height: 1.5;
+    color: black;
+  }
+
+  .printDocument h1 {
+    font-size: 24pt;
+    margin-bottom: 20pt;
+    text-align: center;
+  }
+
+  .printDocument h2 {
+    font-size: 18pt;
+    margin-top: 20pt;
+    margin-bottom: 10pt;
+    page-break-after: avoid;
+  }
+
+  .printDocument h3 {
+    font-size: 14pt;
+    margin-top: 15pt;
+    margin-bottom: 5pt;
+    page-break-after: avoid;
+  }
+
+  .printDocument p,
+  .printDocument ul,
+  .printDocument li {
+    font-size: 12pt;
+    margin-bottom: 5pt;
+  }
+
+  .printDocument ul {
+    margin-left: 20pt;
+  }
+
+  .printDocument .section {
+    margin-bottom: 15pt;
+    page-break-inside: avoid;
+  }
+
+  .printDocument .pageBreak {
+    page-break-before: always;
+  }
+
+  .printDocument .header {
+    text-align: center;
+    margin-bottom: 30pt;
+  }
+
+  .printDocument .footer {
+    text-align: center;
+    margin-top: 30pt;
+    font-size: 10pt;
+    color: #666;
+  }
+}

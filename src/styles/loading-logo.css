@@ -1,0 +1,94 @@
+.loading-logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  min-height: 200px;
+}
+
+.loading-logo {
+  display: flex;
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.loading-letter {
+  display: inline-block;
+  animation: letterWave 1.5s infinite ease-in-out;
+  color: #3b82f6; /* 기본 파란색 */
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+.loading-letter.highlight {
+  color: #2563eb; /* 강조 색상 */
+  text-shadow: 0 0 15px rgba(37, 99, 235, 0.5);
+}
+
+.loading-text {
+  font-size: 0.875rem;
+  color: #6b7280; /* 회색 */
+  animation: textPulse 2s infinite;
+}
+
+/* 파도 애니메이션 */
+@keyframes letterWave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+/* 텍스트 페이드 애니메이션 */
+@keyframes textPulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* 다크 모드에서 글자 색상 조정 */
+.dark .loading-letter {
+  color: #60a5fa; /* 다크모드에서 더 밝은 파란색 */
+  text-shadow: 0 0 15px rgba(96, 165, 250, 0.5);
+}
+
+.dark .loading-letter.highlight {
+  color: #93c5fd; /* 다크모드에서 더 밝은 강조색 */
+  text-shadow: 0 0 15px rgba(147, 197, 253, 0.6);
+}
+
+.dark .loading-text {
+  color: #9ca3af; /* 다크모드에서 더 밝은 회색 */
+}
+
+/* 개별 글자 애니메이션 딜레이 설정 */
+.loading-letter:nth-child(1) {
+  animation-delay: 0s;
+}
+.loading-letter:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.loading-letter:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.loading-letter:nth-child(4) {
+  animation-delay: 0.3s;
+}
+.loading-letter:nth-child(5) {
+  animation-delay: 0.4s;
+}
+.loading-letter:nth-child(6) {
+  animation-delay: 0.5s;
+}
+.loading-letter:nth-child(7) {
+  animation-delay: 0.6s;
+}

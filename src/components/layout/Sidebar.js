@@ -64,7 +64,7 @@ const Sidebar = ({ isOpen, toggleSidebar, theme }) => {
               </span>
             </div>
             <span className="text-lg font-semibold text-foreground">
-              Setflow
+              SetFlow
             </span>
           </Link>
         </div>

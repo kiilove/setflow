@@ -32,7 +32,29 @@ import {
 } from "react-icons/hi";
 import PageContainer from "../../components/common/PageContainer";
 import { getButtonVariantClass } from "../../utils/themeUtils";
-import QRCode from "react-qr-code";
+
+// QRCode 컴포넌트 대체 구현
+const SimpleQRCode = ({ value, size = 200 }) => {
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: "#f0f0f0",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        border: "1px solid #ddd",
+        borderRadius: "4px",
+      }}
+    >
+      <div className="text-center">
+        <FaQrcode size={size / 2} />
+        <div className="mt-2 text-xs">QR Code for: {value}</div>
+      </div>
+    </div>
+  );
+};
 
 const UsersDetail = () => {
   const { id } = useParams();
@@ -565,10 +587,9 @@ const UsersDetail = () => {
               </button>
             </div>
             <div className="flex flex-col items-center justify-center p-4">
-              <QRCode
+              <SimpleQRCode
                 value={`https://setflow.app/users/${user.id}`}
                 size={200}
-                level="H"
               />
               <p className="mt-4 text-center text-sm text-muted-foreground">
                 이 QR 코드를 스캔하여 사용자 정보에 빠르게 접근하세요.

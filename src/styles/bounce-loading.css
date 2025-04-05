@@ -1,0 +1,112 @@
+.bounce-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  min-height: 200px;
+}
+
+.bounce-loading-logo {
+  display: flex;
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+}
+
+.bounce-letter {
+  display: inline-block;
+  animation: bounce 0.8s infinite alternate;
+  color: #3b82f6; /* 기본 파란색 */
+}
+
+.bounce-letter.highlight {
+  color: #2563eb; /* 강조 색상 */
+  font-weight: 800;
+}
+
+/* 바운스 애니메이션 */
+@keyframes bounce {
+  0% {
+    transform: translateY(0);
+    text-shadow: 0 0 0 rgba(59, 130, 246, 0);
+  }
+  100% {
+    transform: translateY(-20px);
+    text-shadow: 0 20px 10px rgba(59, 130, 246, 0.2);
+  }
+}
+
+/* 다크 모드에서 글자 색상 조정 */
+.dark .bounce-letter {
+  color: #60a5fa; /* 다크모드에서 더 밝은 파란색 */
+}
+
+.dark .bounce-letter.highlight {
+  color: #93c5fd; /* 다크모드에서 더 밝은 강조색 */
+}
+
+/* 로딩 점 스타일 */
+.bounce-loading-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background-color: #3b82f6;
+  border-radius: 50%;
+  animation: dotPulse 1.4s infinite ease-in-out;
+}
+
+.dark .dot {
+  background-color: #60a5fa;
+}
+
+@keyframes dotPulse {
+  0%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 개별 점 애니메이션 딜레이 */
+.dot:nth-child(1) {
+  animation-delay: 0s;
+}
+.dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* 개별 글자 애니메이션 딜레이 */
+.bounce-letter:nth-child(1) {
+  animation-delay: 0s;
+}
+.bounce-letter:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.bounce-letter:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.bounce-letter:nth-child(4) {
+  animation-delay: 0.3s;
+}
+.bounce-letter:nth-child(5) {
+  animation-delay: 0.4s;
+}
+.bounce-letter:nth-child(6) {
+  animation-delay: 0.5s;
+}
+.bounce-letter:nth-child(7) {
+  animation-delay: 0.6s;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import PageContainer from "../../components/common/PageContainer";
 import { getButtonVariantClass } from "../../utils/themeUtils";
 
@@ -12,6 +12,8 @@ const Departments = () => {
   const [filterLocation, setFilterLocation] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     // 실제 구현에서는 API 호출로 대체
@@ -148,6 +150,10 @@ const Departments = () => {
     }
   };
 
+  const handleRowClick = (departmentId) => {
+    navigate(`/departments/detail/${departmentId}`);
+  };
+
   if (loading) {
     return (
       <PageContainer>
@@ -166,7 +172,7 @@ const Departments = () => {
           <h1 className="text-2xl font-bold">부서 관리</h1>
           <div className="flex gap-2">
             <Link
-              to="/users/departments/add"
+              to="/departments/add"
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md transition-colors flex items-center"
             >
               <svg
@@ -390,7 +396,8 @@ const Departments = () => {
                 {sortedDepartments.map((department) => (
                   <tr
                     key={department.id}
-                    className="hover:bg-muted/50 transition-colors"
+                    className="hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => handleRowClick(department.id)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       {department.name}
@@ -464,7 +471,7 @@ const Departments = () => {
                           </svg>
                         </Link>
                         <Link
-                          to={`/users/departments/edit/${department.id}`}
+                          to={`/departments/edit/${department.id}`}
                           className="text-primary hover:text-primary/80 transition-colors"
                         >
                           <svg
@@ -635,7 +642,7 @@ const Departments = () => {
                 </div>
                 <div className="flex space-x-2">
                   <Link
-                    to={`/users/departments/edit/${department.id}`}
+                    to={`/departments/edit/${department.id}`}
                     className="text-primary hover:text-primary/80"
                   >
                     <svg

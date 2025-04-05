@@ -14,6 +14,9 @@ import DashboardActivity from "./DashboardActivity";
 import DashboardDistribution from "./DashboardDistribution";
 import { getDashboardData } from "../../data/dashboardData";
 import { getAnalyticsData } from "../../data/analyticsData";
+import PageLoading from "../../components/common/PageLoading";
+import FancyLoadingLogo from "../../components/common/FancyLoadingLogo";
+import BounceLoadingLogo from "../../components/common/BounceLoadingLogo";
 
 const Dashboard = () => {
   // 상태 관리
@@ -67,13 +70,7 @@ const Dashboard = () => {
 
   // 로딩 상태 표시
   if (loading) {
-    return (
-      <PageContainer title="대시보드">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        </div>
-      </PageContainer>
-    );
+    return <PageLoading />;
   }
 
   return (

@@ -1,164 +1,39 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { FaPlus, FaDownload, FaHistory, FaClipboardList } from "react-icons/fa";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, Plus, Filter, Calendar, List } from "lucide-react";
 import PageContainer from "../../components/common/PageContainer";
-import { getStatusColorClass } from "../../utils/themeUtils";
+import MaintenanceTable from "../../components/maintenance/MaintenanceTable";
+import { getButtonVariantClass } from "../../utils/themeUtils";
+import { dataService } from "../../data/mockData";
 
 const Maintenance = () => {
-  // 탭 상태 관리
-  const [activeTab, setActiveTab] = useState("current"); // 'current' 또는 'history'
-
-  // 공통 상태
+  const [maintenanceData, setMaintenanceData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
-
-  // 현재 유지보수 관련 상태
-  const [maintenanceRecords, setMaintenanceRecords] = useState([]);
   const [filterStatus, setFilterStatus] = useState("");
-  const [sortBy, setSortBy] = useState("assetName");
-  const [sortOrder, setSortOrder] = useState("asc");
-
-  // 유지보수 이력 관련 상태
-  const [maintenanceHistory, setMaintenanceHistory] = useState([]);
   const [filterType, setFilterType] = useState("");
-  const [historySortBy, setHistorySortBy] = useState("date");
-  const [historySortOrder, setHistorySortOrder] = useState("desc");
+  const [filterPriority, setFilterPriority] = useState("");
+  const [sortBy, setSortBy] = useState("scheduledDate");
+  const [sortOrder, setSortOrder] = useState("asc");
+  const [viewMode, setViewMode] = useState("list"); // 'list' or 'calendar'
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const navigate = useNavigate();
 
-  // 데이터 로드
+  // 유지보수 데이터 로드
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 현재 유지보수 데이터 로딩 시뮬레이션
-        setTimeout(() => {
-          const mockRecords = [
-            {
-              id: 1,
-              assetName: "노트북 Dell XPS 15",
-              assetId: "AST-001",
-              type: "정기점검",
-              date: "2023-01-10",
-              technician: "박기술자",
-              status: "완료",
-              cost: "₩50,000",
-            },
-            {
-              id: 2,
-              assetName: "프린터 HP LaserJet",
-              assetId: "AST-003",
-              type: "수리",
-              date: "2023-02-15",
-              technician: "이수리",
-              status: "완료",
-              cost: "₩120,000",
-            },
-            {
-              id: 3,
-              assetName: "서버 Dell PowerEdge",
-              assetId: "AST-005",
-              type: "업그레이드",
-              date: "2023-03-20",
-              technician: "김엔지니어",
-              status: "완료",
-              cost: "₩800,000",
-            },
-            {
-              id: 4,
-              assetName: "태블릿 iPad Pro",
-              assetId: "AST-004",
-              type: "수리",
-              date: "2023-06-15",
-              technician: "이수리",
-              status: "진행중",
-              cost: "₩150,000",
-            },
-            {
-              id: 5,
-              assetName: "노트북 MacBook Pro",
-              assetId: "AST-012",
-              type: "정기점검",
-              date: "2023-07-05",
-              technician: "박기술자",
-              status: "예정",
-              cost: "₩50,000",
-            },
-          ];
-          setMaintenanceRecords(mockRecords);
-
-          // 유지보수 이력 데이터
-          const mockHistory = [
-            {
-              id: 1,
-              assetName: "노트북 Dell XPS 15",
-              assetId: "AST-001",
-              type: "정기점검",
-              date: "2022-08-15",
-              technician: "박기술자",
-              cost: "₩50,000",
-              description: "하드웨어 점검 및 소프트웨어 업데이트",
-            },
-            {
-              id: 2,
-              assetName: "프린터 HP LaserJet",
-              assetId: "AST-003",
-              type: "수리",
-              date: "2022-09-20",
-              technician: "이수리",
-              cost: "₩120,000",
-              description: "용지 걸림 센서 교체",
-            },
-            {
-              id: 3,
-              assetName: "서버 Dell PowerEdge",
-              assetId: "AST-005",
-              type: "업그레이드",
-              date: "2022-11-10",
-              technician: "김엔지니어",
-              cost: "₩800,000",
-              description: "메모리 증설 및 RAID 구성 변경",
-            },
-            {
-              id: 4,
-              assetName: "노트북 Dell XPS 15",
-              assetId: "AST-001",
-              type: "수리",
-              date: "2023-01-05",
-              technician: "이수리",
-              cost: "₩200,000",
-              description: "키보드 교체",
-            },
-            {
-              id: 5,
-              assetName: "프린터 HP LaserJet",
-              assetId: "AST-003",
-              type: "정기점검",
-              date: "2023-02-15",
-              technician: "박기술자",
-              cost: "₩50,000",
-              description: "정기 유지보수 및 토너 교체",
-            },
-            {
-              id: 6,
-              assetName: "태블릿 iPad Pro",
-              assetId: "AST-004",
-              type: "수리",
-              date: "2023-06-15",
-              technician: "이수리",
-              cost: "₩150,000",
-              description: "배터리 교체",
-            },
-          ];
-          setMaintenanceHistory(mockHistory);
-          setLoading(false);
-        }, 800);
+        setLoading(true);
+        const data = await dataService.getMaintenance();
+        setMaintenanceData(data);
       } catch (error) {
         console.error(
           "유지보수 데이터를 불러오는 중 오류가 발생했습니다:",
           error
         );
+      } finally {
         setLoading(false);
       }
     };
@@ -166,12 +41,7 @@ const Maintenance = () => {
     fetchData();
   }, []);
 
-  // 탭 변경 시 페이지 초기화
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [activeTab]);
-
-  // 정렬 처리 - 현재 유지보수
+  // 정렬 처리
   const handleSort = (column) => {
     if (sortBy === column) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -181,102 +51,150 @@ const Maintenance = () => {
     }
   };
 
-  // 정렬 처리 - 유지보수 이력
-  const handleHistorySort = (column) => {
-    if (historySortBy === column) {
-      setHistorySortOrder(historySortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setHistorySortBy(column);
-      setHistorySortOrder("asc");
-    }
-  };
-
-  // 검색 및 필터링된 현재 유지보수 목록
-  const filteredRecords = maintenanceRecords.filter(
-    (record) =>
-      (record.assetName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.technician.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.assetId.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (filterStatus === "" || record.status === filterStatus)
+  // 검색 및 필터링된 유지보수 목록
+  const filteredMaintenance = maintenanceData.filter(
+    (maintenance) =>
+      (maintenance.assetName
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+        maintenance.technician
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        maintenance.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        maintenance.assetId
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase())) &&
+      (filterStatus === "" || maintenance.status === filterStatus) &&
+      (filterType === "" || maintenance.type === filterType) &&
+      (filterPriority === "" || maintenance.priority === filterPriority)
   );
 
-  // 검색 및 필터링된 유지보수 이력 목록
-  const filteredHistory = maintenanceHistory.filter(
-    (history) =>
-      (history.assetName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        history.technician.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        history.assetId.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (filterType === "" || history.type === filterType)
-  );
-
-  // 정렬 - 현재 유지보수
-  const sortedRecords = [...filteredRecords].sort((a, b) => {
+  // 정렬
+  const sortedMaintenance = [...filteredMaintenance].sort((a, b) => {
     let comparison = 0;
 
-    if (sortBy === "assetName") {
+    if (sortBy === "scheduledDate") {
+      comparison = new Date(a.scheduledDate) - new Date(b.scheduledDate);
+    } else if (sortBy === "completedDate") {
+      // null 값 처리
+      if (!a.completedDate) return 1;
+      if (!b.completedDate) return -1;
+      comparison = new Date(a.completedDate) - new Date(b.completedDate);
+    } else if (sortBy === "assetName") {
       comparison = a.assetName.localeCompare(b.assetName);
-    } else if (sortBy === "assetId") {
-      comparison = a.assetId.localeCompare(b.assetId);
     } else if (sortBy === "type") {
       comparison = a.type.localeCompare(b.type);
-    } else if (sortBy === "date") {
-      comparison = new Date(a.date) - new Date(b.date);
     } else if (sortBy === "technician") {
       comparison = a.technician.localeCompare(b.technician);
     } else if (sortBy === "status") {
       comparison = a.status.localeCompare(b.status);
+    } else if (sortBy === "priority") {
+      const priorityOrder = { 높음: 1, 중간: 2, 낮음: 3 };
+      comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
     } else if (sortBy === "cost") {
-      const aCost = Number.parseInt(a.cost.replace(/[^\d]/g, ""));
-      const bCost = Number.parseInt(b.cost.replace(/[^\d]/g, ""));
-      comparison = aCost - bCost;
+      // null 값 처리
+      if (a.cost === null) return 1;
+      if (b.cost === null) return -1;
+      comparison = Number(a.cost) - Number(b.cost);
     }
 
     return sortOrder === "asc" ? comparison : -comparison;
   });
 
-  // 정렬 - 유지보수 이력
-  const sortedHistory = [...filteredHistory].sort((a, b) => {
-    let comparison = 0;
+  // 삭제 핸들러
+  const handleDelete = (id, assetName) => {
+    if (window.confirm(`${assetName}의 유지보수 기록을 삭제하시겠습니까?`)) {
+      // 실제 구현에서는 API 호출
+      console.log(`유지보수 ID ${id} 삭제`);
 
-    if (historySortBy === "date") {
-      comparison = new Date(a.date) - new Date(b.date);
-    } else if (historySortBy === "assetName") {
-      comparison = a.assetName.localeCompare(b.assetName);
-    } else if (historySortBy === "assetId") {
-      comparison = a.assetId.localeCompare(b.assetId);
-    } else if (historySortBy === "type") {
-      comparison = a.type.localeCompare(b.type);
-    } else if (historySortBy === "technician") {
-      comparison = a.technician.localeCompare(b.technician);
-    } else if (historySortBy === "cost") {
-      const aCost = Number.parseInt(a.cost.replace(/[^\d]/g, ""));
-      const bCost = Number.parseInt(b.cost.replace(/[^\d]/g, ""));
-      comparison = aCost - bCost;
+      // 목록에서 제거
+      setMaintenanceData(maintenanceData.filter((item) => item.id !== id));
     }
+  };
 
-    return historySortOrder === "asc" ? comparison : -comparison;
-  });
+  // 유지보수 유형 목록 (중복 제거)
+  const maintenanceTypes = [
+    ...new Set(maintenanceData.map((item) => item.type)),
+  ];
 
-  // 페이지네이션 - 현재 활성 탭에 따라 데이터 선택
-  const currentData = activeTab === "current" ? sortedRecords : sortedHistory;
-  const totalPages = Math.ceil(currentData.length / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = currentData.slice(indexOfFirstItem, indexOfLastItem);
+  // 달력 관련 함수
+  const getDaysInMonth = (year, month) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
 
-  // 유지보수 유형에 따른 상태 색상 클래스 가져오기
-  const getMaintenanceTypeClass = (type) => {
-    switch (type) {
-      case "정기점검":
-        return getStatusColorClass("success");
-      case "수리":
-        return getStatusColorClass("warning");
-      case "업그레이드":
-        return getStatusColorClass("info");
-      default:
-        return getStatusColorClass("default");
-    }
+  const getFirstDayOfMonth = (year, month) => {
+    return new Date(year, month, 1).getDay();
+  };
+
+  const getMonthName = (date) => {
+    return date.toLocaleString("default", { month: "long" });
+  };
+
+  const handlePrevMonth = () => {
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
+    );
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
+    );
+  };
+
+  // 달력 데이터 생성
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstDayOfMonth = getFirstDayOfMonth(year, month);
+
+  // 달력에 표시할 날짜 배열 생성
+  const calendarDays = [];
+
+  // 이전 달의 날짜 추가
+  const prevMonthDays = getDaysInMonth(year, month - 1);
+  for (let i = firstDayOfMonth - 1; i >= 0; i--) {
+    calendarDays.push({
+      day: prevMonthDays - i,
+      currentMonth: false,
+      date: new Date(year, month - 1, prevMonthDays - i),
+    });
+  }
+
+  // 현재 달의 날짜 추가
+  for (let i = 1; i <= daysInMonth; i++) {
+    calendarDays.push({
+      day: i,
+      currentMonth: true,
+      date: new Date(year, month, i),
+    });
+  }
+
+  // 다음 달의 날짜 추가 (42개 셀을 채우기 위해)
+  const remainingDays = 42 - calendarDays.length;
+  for (let i = 1; i <= remainingDays; i++) {
+    calendarDays.push({
+      day: i,
+      currentMonth: false,
+      date: new Date(year, month + 1, i),
+    });
+  }
+
+  // 날짜 형식 변환 함수
+  const formatDate = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // 특정 날짜의 일정 가져오기
+  const getSchedulesForDate = (date) => {
+    const formattedDate = formatDate(date);
+    return maintenanceData.filter(
+      (schedule) => schedule.scheduledDate === formattedDate
+    );
   };
 
   return (
@@ -285,803 +203,220 @@ const Maintenance = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h1 className="text-2xl font-bold">유지보수 관리</h1>
           <div className="flex gap-2">
-            {activeTab === "current" && (
-              <>
-                <button className="bg-muted hover:bg-muted/80 text-muted-foreground px-4 py-2 rounded-md transition-colors flex items-center">
-                  <FaDownload className="mr-1 h-4 w-4" />
-                  내보내기
-                </button>
-                <Link
-                  to="/maintenance/add"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md transition-colors flex items-center"
-                >
-                  <FaPlus className="mr-1 h-4 w-4" />
-                  유지보수 등록
-                </Link>
-              </>
-            )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`flex items-center gap-1 px-3 py-2 rounded-md ${
+                  viewMode === "list"
+                    ? getButtonVariantClass("primary")
+                    : getButtonVariantClass("secondary")
+                }`}
+              >
+                <List className="h-4 w-4" />
+                <span>목록</span>
+              </button>
+              <button
+                onClick={() => setViewMode("calendar")}
+                className={`flex items-center gap-1 px-3 py-2 rounded-md ${
+                  viewMode === "calendar"
+                    ? getButtonVariantClass("primary")
+                    : getButtonVariantClass("secondary")
+                }`}
+              >
+                <Calendar className="h-4 w-4" />
+                <span>캘린더</span>
+              </button>
+            </div>
+            <Link
+              to="/maintenance/add"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md transition-colors flex items-center"
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              유지보수 추가
+            </Link>
           </div>
-        </div>
-
-        {/* 탭 네비게이션 */}
-        <div className="flex border-b border-border">
-          <button
-            className={`px-4 py-2 font-medium flex items-center ${
-              activeTab === "current"
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            onClick={() => setActiveTab("current")}
-          >
-            <FaClipboardList className="mr-2 h-4 w-4" />
-            유지보수 관리
-          </button>
-          <button
-            className={`px-4 py-2 font-medium flex items-center ${
-              activeTab === "history"
-                ? "text-primary border-b-2 border-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            onClick={() => setActiveTab("history")}
-          >
-            <FaHistory className="mr-2 h-4 w-4" />
-            유지보수 이력
-          </button>
         </div>
 
         {/* 검색 및 필터 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="col-span-1">
-            <div className="relative">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
-              <input
-                type="text"
-                placeholder={
-                  activeTab === "current"
-                    ? "자산, 기술자 또는 유형 검색..."
-                    : "자산명, 자산 ID 또는 기술자 검색..."
-                }
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <input
+              type="text"
+              placeholder="자산명, 기술자 또는 유형 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
           </div>
-          <div>
-            <div className="relative">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
-              >
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-              </svg>
-              {activeTab === "current" ? (
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="">모든 상태</option>
-                  <option value="완료">완료</option>
-                  <option value="진행중">진행중</option>
-                  <option value="예정">예정</option>
-                </select>
-              ) : (
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="">모든 유형</option>
-                  <option value="정기점검">정기점검</option>
-                  <option value="수리">수리</option>
-                  <option value="업그레이드">업그레이드</option>
-                </select>
-              )}
-            </div>
+
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            >
+              <option value="">모든 상태</option>
+              <option value="예정">진행 예정</option>
+              <option value="진행중">진행중</option>
+              <option value="완료">완료</option>
+              <option value="취소">취소</option>
+            </select>
+          </div>
+
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            >
+              <option value="">모든 유형</option>
+              {maintenanceTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <select
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            >
+              <option value="">모든 우선순위</option>
+              <option value="높음">높음</option>
+              <option value="중간">중간</option>
+              <option value="낮음">낮음</option>
+            </select>
           </div>
         </div>
 
-        {/* 유지보수 목록 테이블 */}
-        <div className="bg-card rounded-lg shadow overflow-hidden border border-border">
-          <div className="overflow-x-auto">
-            {activeTab === "current" ? (
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-muted">
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleSort("assetName")}
-                    >
-                      <div className="flex items-center">
-                        자산명
-                        {sortBy === "assetName" && (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ml-1"
-                          >
-                            {sortOrder === "asc" ? (
-                              <path d="m18 15-6-6-6 6" />
-                            ) : (
-                              <path d="m6 9 6 6 6-6" />
-                            )}
-                          </svg>
-                        )}
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleSort("assetId")}
-                    >
-                      <div className="flex items-center">
-                        자산 ID
-                        {sortBy === "assetId" && (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ml-1"
-                          >
-                            {sortOrder === "asc" ? (
-                              <path d="m18 15-6-6-6 6" />
-                            ) : (
-                              <path d="m6 9 6 6 6-6" />
-                            )}
-                          </svg>
-                        )}
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleSort("type")}
-                    >
-                      <div className="flex items-center">
-                        유형
-                        {sortBy === "type" && (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ml-1"
-                          >
-                            {sortOrder === "asc" ? (
-                              <path d="m18 15-6-6-6 6" />
-                            ) : (
-                              <path d="m6 9 6 6 6-6" />
-                            )}
-                          </svg>
-                        )}
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleSort("date")}
-                    >
-                      <div className="flex items-center">
-                        날짜
-                        {sortBy === "date" && (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ml-1"
-                          >
-                            {sortOrder === "asc" ? (
-                              <path d="m18 15-6-6-6 6" />
-                            ) : (
-                              <path d="m6 9 6 6 6-6" />
-                            )}
-                          </svg>
-                        )}
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleSort("technician")}
-                    >
-                      <div className="flex items-center">
-                        기술자
-                        {sortBy === "technician" && (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ml-1"
-                          >
-                            {sortOrder === "asc" ? (
-                              <path d="m18 15-6-6-6 6" />
-                            ) : (
-                              <path d="m6 9 6 6 6-6" />
-                            )}
-                          </svg>
-                        )}
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleSort("cost")}
-                    >
-                      <div className="flex items-center">
-                        비용
-                        {sortBy === "cost" && (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ml-1"
-                          >
-                            {sortOrder === "asc" ? (
-                              <path d="m18 15-6-6-6 6" />
-                            ) : (
-                              <path d="m6 9 6 6 6-6" />
-                            )}
-                          </svg>
-                        )}
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleSort("status")}
-                    >
-                      <div className="flex items-center">
-                        상태
-                        {sortBy === "status" && (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ml-1"
-                          >
-                            {sortOrder === "asc" ? (
-                              <path d="m18 15-6-6-6 6" />
-                            ) : (
-                              <path d="m6 9 6 6 6-6" />
-                            )}
-                          </svg>
-                        )}
-                      </div>
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      작업
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {loading ? (
-                    <tr>
-                      <td colSpan="9" className="px-6 py-8 text-center">
-                        <div className="flex justify-center items-center">
-                          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                          <span className="ml-2 text-muted-foreground">
-                            로딩 중...
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : currentItems.length > 0 ? (
-                    currentItems.map((record) => (
-                      <tr
-                        key={record.id}
-                        className="hover:bg-muted/50 transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {record.assetName}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {record.assetId}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getMaintenanceTypeClass(
-                              record.type
-                            )}`}
-                          >
-                            {record.type}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {record.date}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {record.technician}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {record.cost}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColorClass(
-                              record.status === "완료"
-                                ? "success"
-                                : record.status === "진행중"
-                                ? "warning"
-                                : "info"
-                            )}`}
-                          >
-                            {record.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <div className="flex space-x-2">
-                            <Link
-                              to={`/maintenance/view/${record.id}`}
-                              className="text-primary hover:text-primary/80 transition-colors"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                                <circle cx="12" cy="12" r="3" />
-                              </svg>
-                            </Link>
-                            <Link
-                              to={`/maintenance/edit/${record.id}`}
-                              className="text-primary hover:text-primary/80 transition-colors"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                                <path d="m15 5 4 4" />
-                              </svg>
-                            </Link>
-                            <button
-                              className="text-destructive hover:text-destructive/80 transition-colors"
-                              onClick={() => {
-                                if (
-                                  window.confirm(
-                                    `${record.assetName}의 유지보수 기록을 삭제하시겠습니까?`
-                                  )
-                                ) {
-                                  console.log(`유지보수 삭제: ${record.id}`);
-                                }
-                              }}
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M3 6h18" />
-                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                                <line x1="10" x2="10" y1="11" y2="17" />
-                                <line x1="14" x2="14" y1="11" y2="17" />
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan="9"
-                        className="px-6 py-8 text-sm text-center text-muted-foreground"
-                      >
-                        <div className="flex flex-col items-center">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="40"
-                            height="40"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="mb-2 text-muted-foreground/60"
-                          >
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" x2="12" y1="8" y2="12" />
-                            <line x1="12" x2="12.01" y1="16" y2="16" />
-                          </svg>
-                          검색 결과가 없습니다.
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-muted">
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleHistorySort("date")}
-                    >
-                      <div className="flex items-center">
-                        날짜
-                        {historySortBy === "date" && (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ml-1"
-                          >
-                            {historySortOrder === "asc" ? (
-                              <path d="m18 15-6-6-6 6" />
-                            ) : (
-                              <path d="m6 9 6 6 6-6" />
-                            )}
-                          </svg>
-                        )}
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleHistorySort("type")}
-                    >
-                      <div className="flex items-center">
-                        유형
-                        {historySortBy === "type" && (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ml-1"
-                          >
-                            {historySortOrder === "asc" ? (
-                              <path d="m18 15-6-6-6 6" />
-                            ) : (
-                              <path d="m6 9 6 6 6-6" />
-                            )}
-                          </svg>
-                        )}
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleHistorySort("assetName")}
-                    >
-                      <div className="flex items-center">
-                        자산명
-                        {historySortBy === "assetName" && (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ml-1"
-                          >
-                            {historySortOrder === "asc" ? (
-                              <path d="m18 15-6-6-6 6" />
-                            ) : (
-                              <path d="m6 9 6 6 6-6" />
-                            )}
-                          </svg>
-                        )}
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleHistorySort("assetId")}
-                    >
-                      <div className="flex items-center">
-                        자산 ID
-                        {historySortBy === "assetId" && (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ml-1"
-                          >
-                            {historySortOrder === "asc" ? (
-                              <path d="m18 15-6-6-6 6" />
-                            ) : (
-                              <path d="m6 9 6 6 6-6" />
-                            )}
-                          </svg>
-                        )}
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleHistorySort("technician")}
-                    >
-                      <div className="flex items-center">
-                        기술자
-                        {historySortBy === "technician" && (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ml-1"
-                          >
-                            {historySortOrder === "asc" ? (
-                              <path d="m18 15-6-6-6 6" />
-                            ) : (
-                              <path d="m6 9 6 6 6-6" />
-                            )}
-                          </svg>
-                        )}
-                      </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                      onClick={() => handleHistorySort("cost")}
-                    >
-                      <div className="flex items-center">
-                        비용
-                        {historySortBy === "cost" && (
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="ml-1"
-                          >
-                            {historySortOrder === "asc" ? (
-                              <path d="m18 15-6-6-6 6" />
-                            ) : (
-                              <path d="m6 9 6 6 6-6" />
-                            )}
-                          </svg>
-                        )}
-                      </div>
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      설명
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {loading ? (
-                    <tr>
-                      <td colSpan="8" className="px-6 py-8 text-center">
-                        <div className="flex justify-center items-center">
-                          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                          <span className="ml-2 text-muted-foreground">
-                            로딩 중...
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : currentItems.length > 0 ? (
-                    currentItems.map((history) => (
-                      <tr
-                        key={history.id}
-                        className="hover:bg-muted/50 transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {history.date}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getMaintenanceTypeClass(
-                              history.type
-                            )}`}
-                          >
-                            {history.type}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {history.assetName}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {history.assetId}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {history.technician}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {history.cost}
-                        </td>
-                        <td className="px-6 py-4 text-sm">
-                          {history.description}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan="8"
-                        className="px-6 py-8 text-sm text-center text-muted-foreground"
-                      >
-                        <div className="flex flex-col items-center">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="40"
-                            height="40"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="mb-2 text-muted-foreground/60"
-                          >
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" x2="12" y1="8" y2="12" />
-                            <line x1="12" x2="12.01" y1="16" y2="16" />
-                          </svg>
-                          검색 결과가 없습니다.
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-
-        {/* 페이지네이션 */}
-        {currentData.length > 0 && (
-          <div className="flex justify-between items-center mt-4">
-            <div className="text-sm text-muted-foreground">
-              총 {currentData.length}개의{" "}
-              {activeTab === "current" ? "유지보수 기록" : "유지보수 이력"}
-            </div>
-            <div className="flex space-x-1">
+        {viewMode === "list" ? (
+          // 목록 보기
+          <MaintenanceTable
+            maintenanceData={sortedMaintenance}
+            loading={loading}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            handleSort={handleSort}
+            handleDelete={handleDelete}
+          />
+        ) : (
+          // 캘린더 보기
+          <div className="rounded-lg border border-border bg-card p-4 shadow-md">
+            <div className="mb-4 flex justify-between items-center">
               <button
-                className="px-3 py-1 rounded border border-input bg-background hover:bg-muted transition-colors disabled:opacity-50"
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
+                onClick={handlePrevMonth}
+                className="text-muted-foreground hover:text-foreground"
               >
-                이전
+                이전 달
               </button>
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-
+              <h3 className="text-xl font-semibold text-foreground">
+                {getMonthName(currentMonth)} {year}
+              </h3>
+              <button
+                onClick={handleNextMonth}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                다음 달
+              </button>
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
+                <div
+                  key={day}
+                  className="p-2 text-center font-medium text-muted-foreground"
+                >
+                  {day}
+                </div>
+              ))}
+              {calendarDays.map((day, index) => {
+                const dateSchedules = getSchedulesForDate(day.date);
                 return (
-                  <button
-                    key={pageNum}
-                    className={`px-3 py-1 rounded border ${
-                      currentPage === pageNum
-                        ? "bg-primary text-primary-foreground"
-                        : "border-input bg-background hover:bg-muted transition-colors"
+                  <div
+                    key={index}
+                    className={`p-2 min-h-[100px] border border-border ${
+                      !day.currentMonth
+                        ? "bg-muted/20 text-muted-foreground"
+                        : dateSchedules.length > 0
+                        ? "bg-muted/30"
+                        : ""
                     }`}
-                    onClick={() => setCurrentPage(pageNum)}
                   >
-                    {pageNum}
-                  </button>
+                    <div
+                      className={`text-right text-sm ${
+                        !day.currentMonth
+                          ? "text-muted-foreground/50"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {day.day}
+                    </div>
+                    {dateSchedules.map((schedule) => (
+                      <Link
+                        key={schedule.id}
+                        to={`/maintenance/detail/${schedule.id}`}
+                        className={`mt-1 p-1 text-xs rounded block ${
+                          schedule.status === "완료"
+                            ? "bg-success/20 text-success hover:bg-success/30"
+                            : schedule.status === "진행중"
+                            ? "bg-warning/20 text-warning hover:bg-warning/30"
+                            : schedule.priority === "높음"
+                            ? "bg-destructive/20 text-destructive hover:bg-destructive/30"
+                            : "bg-primary/20 text-primary hover:bg-primary/30"
+                        }`}
+                      >
+                        {schedule.assetName} - {schedule.type}
+                      </Link>
+                    ))}
+                  </div>
                 );
               })}
-              <button
-                className="px-3 py-1 rounded border border-input bg-background hover:bg-muted transition-colors disabled:opacity-50"
-                onClick={() =>
-                  setCurrentPage(Math.min(totalPages, currentPage + 1))
-                }
-                disabled={currentPage === totalPages}
-              >
-                다음
-              </button>
             </div>
           </div>
         )}
+
+        {/* 통계 요약 */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border p-4">
+            <h3 className="text-sm font-medium text-muted-foreground mb-1">
+              총 유지보수
+            </h3>
+            <p className="text-2xl font-bold">{maintenanceData.length}</p>
+          </div>
+          <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border p-4">
+            <h3 className="text-sm font-medium text-muted-foreground mb-1">
+              진행 예정
+            </h3>
+            <p className="text-2xl font-bold">
+              {maintenanceData.filter((item) => item.status === "예정").length}
+            </p>
+          </div>
+          <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border p-4">
+            <h3 className="text-sm font-medium text-muted-foreground mb-1">
+              진행 중
+            </h3>
+            <p className="text-2xl font-bold">
+              {
+                maintenanceData.filter((item) => item.status === "진행중")
+                  .length
+              }
+            </p>
+          </div>
+          <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border p-4">
+            <h3 className="text-sm font-medium text-muted-foreground mb-1">
+              완료
+            </h3>
+            <p className="text-2xl font-bold">
+              {maintenanceData.filter((item) => item.status === "완료").length}
+            </p>
+          </div>
+        </div>
       </div>
     </PageContainer>
   );
