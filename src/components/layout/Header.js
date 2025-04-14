@@ -35,14 +35,14 @@ const Header = ({ toggleSidebar, toggleTheme, theme }) => {
       className="bg-card shadow-md z-10 theme-transition"
       style={{ height: "65px" }}
     >
-      <div className="flex items-center justify-between py-2 px-8">
+      <div className="flex items-center justify-between py-2 px-6">
         <div className="flex items-center">
           <button
             onClick={toggleSidebar}
-            className="p-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none md:hidden theme-transition"
+            className=" rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none md:hidden theme-transition"
             aria-label="Toggle sidebar"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className=" w-6 h-6" />
           </button>
         </div>
 

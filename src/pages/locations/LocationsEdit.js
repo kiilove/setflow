@@ -3,11 +3,16 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageContainer from "../../components/common/PageContainer";
-import LocationsForm from "../../components/locations/LocationsForm";
+import LocationForm from "../../components/locations/LocationForm";
+import { useFirestore } from "../../hooks/useFirestore";
+import { useMessageContext } from "../../context/MessageContext";
 
 const LocationsEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { getDocument, updateDocument } = useFirestore("locations");
+  const { showSuccess, showError } = useMessageContext();
+
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -16,53 +21,41 @@ const LocationsEdit = () => {
   useEffect(() => {
     const fetchLocation = async () => {
       try {
-        // 실제 구현에서는 API 호출
-        // 예시 데이터
-        const locationData = {
-          id: Number.parseInt(id),
-          name: "본사 3층",
-          address: "서울시 강남구 테헤란로 123",
-          city: "강남구",
-          state: "서울시",
-          zipCode: "06123",
-          country: "대한민국",
-          manager: "박관리자",
-          phone: "02-1234-5678",
-          email: "location@example.com",
-          description: "본사 3층 사무실",
-          latitude: "37.5665",
-          longitude: "126.978",
-        };
+        setLoading(true);
+        const data = await getDocument(id);
 
-        setTimeout(() => {
-          setLocation(locationData);
-          setLoading(false);
-        }, 800);
-      } catch (error) {
-        console.error("위치 정보를 불러오는 중 오류가 발생했습니다:", error);
-        setError("위치 정보를 불러올 수 없습니다.");
+        if (!data) {
+          throw new Error("위치를 찾을 수 없습니다.");
+        }
+
+        setLocation(data);
+      } catch (err) {
+        console.error("위치 로딩 오류:", err);
+        setError(err.message);
+        showError(
+          "로딩 오류",
+          err.message || "위치를 불러오는 중 오류가 발생했습니다."
+        );
+      } finally {
         setLoading(false);
       }
     };
 
     fetchLocation();
-  }, [id]);
+  }, [id, getDocument, showError]);
 
   const handleSubmit = async (formData) => {
     try {
       setSubmitting(true);
-      // 실제 구현에서는 API 호출
-      console.log("위치 정보 수정:", formData);
 
-      // 성공 시 위치 목록 페이지로 이동
-      setTimeout(() => {
-        setSubmitting(false);
-        navigate("/locations", {
-          state: { message: "위치 정보가 성공적으로 수정되었습니다." },
-        });
-      }, 1000);
-    } catch (error) {
-      console.error("위치 정보 수정 중 오류 발생:", error);
+      // Firestore 업데이트
+      await updateDocument(id, formData);
+
+      showSuccess("위치 수정 완료", "위치가 성공적으로 업데이트되었습니다.");
+      navigate("/locations");
+    } catch (err) {
+      console.error("위치 업데이트 오류:", err);
+      showError("수정 오류", "위치 업데이트 중 오류가 발생했습니다.");
       setSubmitting(false);
     }
   };
@@ -73,12 +66,10 @@ const LocationsEdit = () => {
 
   if (loading) {
     return (
-      <PageContainer>
+      <PageContainer title="위치 수정">
         <div className="flex justify-center items-center h-64">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <span className="ml-2 text-muted-foreground">
-            위치 정보를 불러오는 중...
-          </span>
+          <span className="ml-2 text-muted-foreground">로딩 중...</span>
         </div>
       </PageContainer>
     );
@@ -86,12 +77,12 @@ const LocationsEdit = () => {
 
   if (error) {
     return (
-      <PageContainer>
-        <div className="bg-destructive/10 text-destructive p-4 rounded-md">
-          <p>{error}</p>
+      <PageContainer title="위치 수정">
+        <div className="flex flex-col justify-center items-center h-64">
+          <p className="text-destructive mb-4">{error}</p>
           <button
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
             onClick={() => navigate("/locations")}
-            className="mt-2 px-4 py-2 bg-background border border-input rounded-md hover:bg-muted transition-colors"
           >
             위치 목록으로 돌아가기
           </button>
@@ -101,12 +92,8 @@ const LocationsEdit = () => {
   }
 
   return (
-    <PageContainer>
+    <PageContainer title="위치 수정">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">위치 정보 수정</h1>
-        </div>
-
         <div className="bg-card rounded-lg shadow p-6 border border-border">
           {submitting ? (
             <div className="flex justify-center items-center h-64">
@@ -114,8 +101,8 @@ const LocationsEdit = () => {
               <span className="ml-2 text-muted-foreground">처리 중...</span>
             </div>
           ) : (
-            <LocationsForm
-              location={location}
+            <LocationForm
+              initialValues={location}
               onSubmit={handleSubmit}
               onCancel={handleCancel}
               isEditing={true}

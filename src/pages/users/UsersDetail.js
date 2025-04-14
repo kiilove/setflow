@@ -3,35 +3,32 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
-  FaEnvelope,
-  FaPhone,
-  FaBuilding,
-  FaBriefcase,
-  FaIdCard,
-  FaCalendarAlt,
-  FaCircle,
-  FaShieldAlt,
-  FaEdit,
-  FaTrash,
-  FaHistory,
-  FaLaptop,
-  FaMobile,
-  FaDesktop,
-  FaTabletAlt,
-  FaHeadphones,
-  FaFileAlt,
-  FaMapMarkerAlt,
-  FaQrcode,
-  FaDownload,
-} from "react-icons/fa";
-import {
-  HiDocumentText,
-  HiIdentification,
-  HiOfficeBuilding,
-  HiClock,
-} from "react-icons/hi";
+  Mail,
+  Phone,
+  Building2,
+  Briefcase,
+  BadgeCheck,
+  Calendar,
+  Shield,
+  MapPin,
+  Edit,
+  Trash2,
+  History,
+  Laptop,
+  FileText,
+  Download,
+  QrCode,
+  X,
+  Clock,
+  User,
+} from "lucide-react";
 import PageContainer from "../../components/common/PageContainer";
-import { getButtonVariantClass } from "../../utils/themeUtils";
+import {
+  getButtonVariantClass,
+  getStatusColorClass,
+} from "../../utils/themeUtils";
+import { useFirestore } from "../../hooks/useFirestore";
+import { useMessageContext } from "../../context/MessageContext";
 
 // QRCode 컴포넌트 대체 구현
 const SimpleQRCode = ({ value, size = 200 }) => {
@@ -49,40 +46,72 @@ const SimpleQRCode = ({ value, size = 200 }) => {
       }}
     >
       <div className="text-center">
-        <FaQrcode size={size / 2} />
+        <QrCode size={size / 2} />
         <div className="mt-2 text-xs">QR Code for: {value}</div>
       </div>
     </div>
   );
 };
 
+// InfoItem 컴포넌트
+const InfoItem = ({ icon, label, value }) => (
+  <div className="flex items-center">
+    <div className="mr-3">{icon}</div>
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="font-medium">{value}</p>
+    </div>
+  </div>
+);
+
+// formatDate 함수
+const formatDate = (dateString) => {
+  if (!dateString) return "-";
+  return new Date(dateString).toLocaleDateString();
+};
+
+// TabButton 컴포넌트
+const TabButton = ({ active, onClick, icon, label }) => (
+  <button
+    className={`flex items-center gap-2 py-3 px-1 border-b-2 ${
+      active
+        ? "border-primary text-primary"
+        : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+    }`}
+    onClick={onClick}
+  >
+    {icon}
+    <span>{label}</span>
+  </button>
+);
+
 const UsersDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { getDocument, deleteDocument } = useFirestore("users");
+  const { showConfirm, showSuccess, showError } = useMessageContext();
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("assets");
   const [showQRModal, setShowQRModal] = useState(false);
 
+  // 사용자 데이터 로드
   useEffect(() => {
-    // 실제 구현에서는 API 호출로 대체
     const fetchUser = async () => {
       try {
+        setLoading(true);
+        const data = await getDocument(id);
+
+        if (!data) {
+          throw new Error("사용자를 찾을 수 없습니다.");
+        }
+
+        // 자산 및 문서 데이터 로드 (실제 구현에서는 API 호출)
         // 예시 데이터
         const userData = {
-          id: Number.parseInt(id),
-          name: "김철수",
-          email: "chulsoo.kim@example.com",
-          phone: "010-1234-5678",
-          department: "개발팀",
-          position: "선임 개발자",
-          employeeId: "EMP-2023-0042",
-          hireDate: "2020-03-15",
-          status: "재직중",
-          role: "일반 사용자",
-          location: "본사 3층",
-          profileImage: "/placeholder.svg?height=150&width=150",
-          lastLogin: "2023-11-28 14:23",
+          ...data,
           assets: [
             {
               id: 1,
@@ -90,7 +119,6 @@ const UsersDetail = () => {
               type: "노트북",
               assignedDate: "2022-01-15",
               status: "사용중",
-              icon: <FaLaptop className="text-blue-500" />,
             },
             {
               id: 2,
@@ -98,7 +126,6 @@ const UsersDetail = () => {
               type: "모바일",
               assignedDate: "2022-01-15",
               status: "사용중",
-              icon: <FaMobile className="text-green-500" />,
             },
             {
               id: 3,
@@ -106,23 +133,6 @@ const UsersDetail = () => {
               type: "모니터",
               assignedDate: "2022-01-15",
               status: "사용중",
-              icon: <FaDesktop className="text-purple-500" />,
-            },
-            {
-              id: 4,
-              name: "iPad Pro 12.9인치",
-              type: "태블릿",
-              assignedDate: "2022-06-10",
-              status: "사용중",
-              icon: <FaTabletAlt className="text-indigo-500" />,
-            },
-            {
-              id: 5,
-              name: "Bose 노이즈 캔슬링 헤드폰",
-              type: "주변기기",
-              assignedDate: "2022-08-22",
-              status: "사용중",
-              icon: <FaHeadphones className="text-red-500" />,
             },
           ],
           history: [
@@ -144,18 +154,6 @@ const UsersDetail = () => {
               action: "정보 수정",
               details: "연락처 정보 업데이트",
             },
-            {
-              id: 4,
-              date: "2023-10-05",
-              action: "자산 할당",
-              details: "iPad Pro 12.9인치 할당 받음",
-            },
-            {
-              id: 5,
-              date: "2023-09-12",
-              action: "부서 이동",
-              details: "마케팅팀에서 개발팀으로 이동",
-            },
           ],
           documents: [
             {
@@ -172,45 +170,42 @@ const UsersDetail = () => {
               uploadDate: "2020-03-15",
               size: "1.1MB",
             },
-            {
-              id: 3,
-              name: "장비 수령 확인서",
-              type: "PDF",
-              uploadDate: "2022-01-15",
-              size: "0.8MB",
-            },
           ],
         };
 
         setUser(userData);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching user:", error);
+      } catch (err) {
+        console.error("사용자 로딩 오류:", err);
+        setError(err.message);
+      } finally {
         setLoading(false);
       }
     };
 
     fetchUser();
-  }, [id]);
+  }, [id, getDocument]);
 
-  const handleDelete = () => {
-    if (window.confirm("정말로 이 사용자를 삭제하시겠습니까?")) {
-      // 실제 구현에서는 API 호출로 대체
-      alert("사용자가 삭제되었습니다.");
-      navigate("/users");
-    }
-  };
+  // 사용자 삭제 핸들러
+  const handleDelete = async () => {
+    const confirmed = await showConfirm(
+      "사용자 삭제",
+      `"${user.name}" 사용자를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
+      {
+        confirmText: "삭제",
+        cancelText: "취소",
+        confirmVariant: "error",
+      }
+    );
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "재직중":
-        return "text-green-500";
-      case "휴직중":
-        return "text-yellow-500";
-      case "퇴사":
-        return "text-red-500";
-      default:
-        return "text-gray-500";
+    if (confirmed) {
+      try {
+        await deleteDocument(id);
+        showSuccess("사용자 삭제 완료", "사용자가 성공적으로 삭제되었습니다.");
+        navigate("/users");
+      } catch (error) {
+        console.error("사용자 삭제 중 오류가 발생했습니다:", error);
+        showError("��제 오류", "사용자 삭제에 실패했습니다.");
+      }
     }
   };
 
@@ -218,23 +213,27 @@ const UsersDetail = () => {
     return (
       <PageContainer title="사용자 상세 정보">
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <span className="ml-2 text-muted-foreground">로딩 중...</span>
         </div>
       </PageContainer>
     );
   }
 
-  if (!user) {
+  if (error || !user) {
     return (
       <PageContainer title="사용자 상세 정보">
-        <div className="text-center py-8">
-          <p className="text-lg text-muted-foreground">
-            사용자를 찾을 수 없습니다.
+        <div className="text-center py-12">
+          <h3 className="text-lg font-medium text-foreground">
+            사용자를 찾을 수 없습니다
+          </h3>
+          <p className="text-muted-foreground mt-2">
+            {error || "요청하신 사용자 ID가 존재하지 않습니다."}
           </p>
           <Link
             to="/users"
-            className={`mt-4 inline-block px-4 py-2 rounded-md ${getButtonVariantClass(
-              "secondary"
+            className={`mt-4 inline-flex items-center px-4 py-2 rounded-md ${getButtonVariantClass(
+              "primary"
             )}`}
           >
             사용자 목록으로 돌아가기
@@ -250,24 +249,28 @@ const UsersDetail = () => {
       <div className="mb-6 rounded-lg border border-border bg-card p-6 shadow-md">
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex-shrink-0">
-            <img
-              src={user.profileImage || "/placeholder.svg"}
-              alt={user.name}
-              className="w-32 h-32 rounded-full object-cover border-4 border-primary/20"
-            />
+            {user.profileImage ? (
+              <img
+                src={user.profileImage || "/placeholder.svg"}
+                alt={user.name}
+                className="w-32 h-32 rounded-full object-cover border-4 border-primary/20"
+              />
+            ) : (
+              <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center border-4 border-primary/20">
+                <span className="text-4xl font-bold text-primary">
+                  {user.name.charAt(0)}
+                </span>
+              </div>
+            )}
           </div>
           <div className="flex-grow">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
               <h2 className="text-2xl font-bold flex items-center">
                 {user.name}
                 <span
-                  className={`ml-3 text-sm px-2 py-1 rounded-full ${
-                    user.status === "재직중"
-                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                      : user.status === "휴직중"
-                      ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                      : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                  }`}
+                  className={`ml-3 text-sm px-2 py-1 rounded-full ${getStatusColorClass(
+                    user.status
+                  )}`}
                 >
                   {user.status}
                 </span>
@@ -279,7 +282,7 @@ const UsersDetail = () => {
                     "secondary"
                   )}`}
                 >
-                  <FaEdit className="h-4 w-4" />
+                  <Edit className="h-4 w-4" />
                   <span>편집</span>
                 </Link>
                 <button
@@ -288,7 +291,7 @@ const UsersDetail = () => {
                     "destructive"
                   )}`}
                 >
-                  <FaTrash className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" />
                   <span>삭제</span>
                 </button>
                 <button
@@ -297,7 +300,7 @@ const UsersDetail = () => {
                     "outline"
                   )}`}
                 >
-                  <FaQrcode className="h-4 w-4" />
+                  <QrCode className="h-4 w-4" />
                   <span>QR 코드</span>
                 </button>
               </div>
@@ -305,54 +308,49 @@ const UsersDetail = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <InfoItem
-                icon={<FaEnvelope className="text-blue-500" />}
+                icon={<Mail className="text-blue-500" />}
                 label="이메일"
                 value={user.email}
               />
               <InfoItem
-                icon={<FaPhone className="text-green-500" />}
+                icon={<Phone className="text-green-500" />}
                 label="전화번호"
-                value={user.phone}
+                value={user.phone || "-"}
               />
               <InfoItem
-                icon={<FaBuilding className="text-purple-500" />}
+                icon={<Building2 className="text-purple-500" />}
                 label="부서"
                 value={user.department}
               />
               <InfoItem
-                icon={<FaBriefcase className="text-yellow-500" />}
+                icon={<Briefcase className="text-yellow-500" />}
                 label="직책"
                 value={user.position}
               />
               <InfoItem
-                icon={<FaIdCard className="text-red-500" />}
+                icon={<BadgeCheck className="text-red-500" />}
                 label="사원번호"
                 value={user.employeeId}
               />
               <InfoItem
-                icon={<FaCalendarAlt className="text-teal-500" />}
+                icon={<Calendar className="text-teal-500" />}
                 label="입사일"
-                value={user.hireDate}
+                value={formatDate(user.joinDate)}
               />
               <InfoItem
-                icon={<FaCircle className={getStatusColor(user.status)} />}
-                label="상태"
-                value={user.status}
-              />
-              <InfoItem
-                icon={<FaShieldAlt className="text-indigo-500" />}
+                icon={<Shield className="text-indigo-500" />}
                 label="권한"
                 value={user.role}
               />
               <InfoItem
-                icon={<FaMapMarkerAlt className="text-pink-500" />}
+                icon={<MapPin className="text-pink-500" />}
                 label="위치"
-                value={user.location}
+                value={user.location || "-"}
               />
               <InfoItem
-                icon={<HiClock className="text-gray-500" />}
+                icon={<Clock className="text-gray-500" />}
                 label="마지막 로그인"
-                value={user.lastLogin}
+                value={user.lastLogin || "-"}
               />
             </div>
           </div>
@@ -365,19 +363,19 @@ const UsersDetail = () => {
           <TabButton
             active={activeTab === "assets"}
             onClick={() => setActiveTab("assets")}
-            icon={<FaLaptop />}
+            icon={<Laptop />}
             label="할당된 자산"
           />
           <TabButton
             active={activeTab === "history"}
             onClick={() => setActiveTab("history")}
-            icon={<FaHistory />}
+            icon={<History />}
             label="활동 이력"
           />
           <TabButton
             active={activeTab === "documents"}
             onClick={() => setActiveTab("documents")}
-            icon={<FaFileAlt />}
+            icon={<FileText />}
             label="문서"
           />
         </div>
@@ -389,7 +387,7 @@ const UsersDetail = () => {
           <div>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold">
-                할당된 자산 ({user.assets.length})
+                할당된 자산 ({user.assets?.length || 0})
               </h3>
               <Link
                 to={`/assignments/add?userId=${user.id}`}
@@ -397,11 +395,11 @@ const UsersDetail = () => {
                   "primary"
                 )}`}
               >
-                <FaLaptop className="h-4 w-4" />
+                <Laptop className="h-4 w-4" />
                 <span>자산 할당</span>
               </Link>
             </div>
-            {user.assets.length > 0 ? (
+            {user.assets && user.assets.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                   <thead>
@@ -421,7 +419,9 @@ const UsersDetail = () => {
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-center">
-                            <div className="mr-3">{asset.icon}</div>
+                            <div className="mr-3">
+                              <Laptop className="h-4 w-4 text-blue-500" />
+                            </div>
                             <span>{asset.name}</span>
                           </div>
                         </td>
@@ -435,18 +435,18 @@ const UsersDetail = () => {
                         <td className="px-4 py-3">
                           <div className="flex space-x-2">
                             <Link
-                              to={`/assets/${asset.id}`}
+                              to={`/assets/detail/${asset.id}`}
                               className="text-primary hover:text-primary/80"
                               title="자산 상세 보기"
                             >
-                              <FaLaptop className="h-4 w-4" />
+                              <Laptop className="h-4 w-4" />
                             </Link>
                             <Link
                               to={`/assignments/return?assetId=${asset.id}&userId=${user.id}`}
                               className="text-yellow-500 hover:text-yellow-600"
                               title="자산 반납"
                             >
-                              <HiDocumentText className="h-4 w-4" />
+                              <FileText className="h-4 w-4" />
                             </Link>
                           </div>
                         </td>
@@ -466,7 +466,7 @@ const UsersDetail = () => {
         {activeTab === "history" && (
           <div>
             <h3 className="text-xl font-semibold mb-4">활동 이력</h3>
-            {user.history.length > 0 ? (
+            {user.history && user.history.length > 0 ? (
               <div className="space-y-4">
                 {user.history.map((item) => (
                   <div
@@ -476,19 +476,13 @@ const UsersDetail = () => {
                     <div className="flex-shrink-0 mr-4">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                         {item.action === "로그인" && (
-                          <HiIdentification className="text-blue-500" />
+                          <User className="text-blue-500" />
                         )}
                         {item.action === "자산 반납" && (
-                          <FaLaptop className="text-red-500" />
+                          <Laptop className="text-red-500" />
                         )}
                         {item.action === "정보 수정" && (
-                          <FaEdit className="text-yellow-500" />
-                        )}
-                        {item.action === "자산 할당" && (
-                          <FaLaptop className="text-green-500" />
-                        )}
-                        {item.action === "부서 이동" && (
-                          <HiOfficeBuilding className="text-purple-500" />
+                          <Edit className="text-yellow-500" />
                         )}
                       </div>
                     </div>
@@ -517,7 +511,7 @@ const UsersDetail = () => {
         {activeTab === "documents" && (
           <div>
             <h3 className="text-xl font-semibold mb-4">문서</h3>
-            {user.documents.length > 0 ? (
+            {user.documents && user.documents.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {user.documents.map((doc) => (
                   <div
@@ -527,7 +521,7 @@ const UsersDetail = () => {
                     <div className="flex items-start justify-between">
                       <div className="flex items-center">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                          <FaFileAlt className="text-primary" />
+                          <FileText className="text-primary" />
                         </div>
                         <div>
                           <h4 className="font-medium">{doc.name}</h4>
@@ -542,7 +536,7 @@ const UsersDetail = () => {
                         className="text-primary hover:text-primary/80"
                         title="다운로드"
                       >
-                        <FaDownload className="h-4 w-4" />
+                        <Download className="h-4 w-4" />
                       </button>
                     </div>
                     <div className="mt-2 text-xs text-muted-foreground">
@@ -562,40 +556,27 @@ const UsersDetail = () => {
 
       {/* QR 코드 모달 */}
       {showQRModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background rounded-lg p-6 max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">사용자 QR 코드</h3>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-card rounded-lg shadow-lg p-6 w-full max-w-md">
+            <div className="relative">
+              <h3 className="text-xl font-semibold mb-4">사용자 QR 코드</h3>
               <button
                 onClick={() => setShowQRModal(false)}
-                className="text-muted-foreground hover:text-foreground"
+                className="absolute top-0 right-0 text-gray-500 hover:text-gray-700"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                <X className="h-6 w-6" />
               </button>
             </div>
-            <div className="flex flex-col items-center justify-center p-4">
+            <div className="flex flex-col items-center justify-center">
               <SimpleQRCode
-                value={`https://setflow.app/users/${user.id}`}
+                value={window.location.origin + `/users/${user.id}`}
                 size={200}
               />
-              <p className="mt-4 text-center text-sm text-muted-foreground">
-                이 QR 코드를 스캔하여 사용자 정보에 빠르게 접근하세요.
-              </p>
             </div>
-            <div className="flex justify-center mt-4">
+            <p className="text-center mt-4 text-muted-foreground">
+              이 QR 코드를 스캔하여 사용자 정보에 빠르게 접근하세요.
+            </p>
+            <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setShowQRModal(false)}
                 className={`px-4 py-2 rounded-md ${getButtonVariantClass(
@@ -611,31 +592,5 @@ const UsersDetail = () => {
     </PageContainer>
   );
 };
-
-// 정보 항목 컴포넌트
-const InfoItem = ({ icon, label, value }) => (
-  <div className="flex items-center">
-    <div className="mr-3">{icon}</div>
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-medium">{value}</p>
-    </div>
-  </div>
-);
-
-// 탭 버튼 컴포넌트
-const TabButton = ({ active, onClick, icon, label }) => (
-  <button
-    className={`flex items-center gap-2 py-3 px-1 border-b-2 ${
-      active
-        ? "border-primary text-primary"
-        : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-    }`}
-    onClick={onClick}
-  >
-    {icon}
-    <span>{label}</span>
-  </button>
-);
 
 export default UsersDetail;

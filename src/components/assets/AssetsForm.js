@@ -1,280 +1,232 @@
 "use client";
 
-import { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { getButtonVariantClass } from "../../utils/themeUtils";
-import { formatFileSize } from "../../utils/fileUtils";
-import specTemplates from "../../data/specTemplates";
+import { useState, useEffect, useRef } from "react";
 import {
   Save,
   X,
-  Tag,
-  ClipboardList,
-  Settings,
-  DollarSign,
-  User,
-  TrendingDown,
-  Paperclip,
+  Layers,
+  Info,
+  CreditCard,
+  MapPin,
+  Cpu,
+  ImageIcon,
   FileText,
 } from "lucide-react";
+import { getButtonVariantClass } from "../../utils/themeUtils";
+import useDeviceDetect from "../../hooks/useDeviceDetect";
+import { useFirestore } from "../../hooks/useFirestore";
 
-// 컴포넌트 임포트
-import CategorySection from "./CategorySection";
+// 분리된 컴포넌트들 가져오기
 import BasicInfoSection from "./BasicInfoSection";
+import LocationAssignmentSection from "./LocationAssignmentSection";
 import PurchaseInfoSection from "./PurchaseInfoSection";
-import AssignmentSection from "./AssignmentSection";
 import SpecificationsSection from "./SpecificationsSection";
-import ImageUploadSection from "./ImageUploadSection";
-import AttachmentsSection from "./AttachmentsSection";
 import NotesSection from "./NotesSection";
-import DepreciationSection from "./DepreciationSection";
+import ImageUploadSection from "./ImageUploadSection";
+import FileUploadSection from "./FileUploadSection";
+import FormNavigation from "./FormNavigation";
+import CategorySection from "./CategorySection";
 
-const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState(initialData);
+// 커스텀 훅 가져오기
+import useImageUpload from "../../hooks/useImageUpload";
+import useFileUpload from "../../hooks/useFileUpload";
 
-  // 섹션 참조 생성
-  const sectionRefs = {
-    1: useRef(null),
-    2: useRef(null),
-    3: useRef(null),
-    4: useRef(null),
-    5: useRef(null),
-    6: useRef(null),
-    7: useRef(null),
-    8: useRef(null),
-  };
+/**
+ * 자산 등록/수정 폼 컴포넌트
+ * @param {Object} props
+ * @param {Object} props.initialData - 초기 데이터
+ * @param {Function} props.onSubmit - 제출 핸들러
+ * @param {Function} props.onCancel - 취소 핸들러
+ * @param {boolean} props.isSubmitting - 제출 중 상태
+ */
+const AssetsForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
+  const [formData, setFormData] = useState(initialData || {});
+  const [activeSection, setActiveSection] = useState("category");
+  const { isMobile } = useDeviceDetect();
+  const [confirmSubmit, setConfirmSubmit] = useState(false); // 제출 확인 상태 추가
+  const { getCollection } = useFirestore("categories");
 
-  // 이미지 업로드 및 미리보기 상태
-  const [imagePreview, setImagePreview] = useState(
-    initialData.imageUrl || null
-  );
-  const [imageFile, setImageFile] = useState(null);
+  // 컴포넌트 최상단에 스크롤 관련 ref를 추가하고,
+  // FormNavigation에 전달하여 더 정확한 스크롤 처리를 할 수 있도록 합니다.
+  const formContainerRef = useRef(null);
 
-  // 첨부파일 상태
-  const [attachments, setAttachments] = useState(initialData.attachments || []);
-
-  // 사양 필드 상태 (템플릿 + 커스텀 필드)
+  // 사양 필드 상태
   const [specFields, setSpecFields] = useState([]);
+  const [customFields, setCustomFields] = useState([]);
+  const [categories, setCategories] = useState([]);
 
-  // 커스텀 필드 상태
-  const [customFields, setCustomFields] = useState(
-    Object.entries(initialData.customSpecifications || {}).map(
-      ([name, value]) => ({ name, value })
-    )
-  );
+  // 이미지 업로드 훅 사용 (압축 옵션 활성화)
+  const {
+    imagePreview,
+    isCompressed,
+    isUploading: isImageUploading,
+    error: imageError,
+    handleImageSelect,
+    uploadImage,
+    resetImage,
+    cleanup: cleanupImage,
+    hasImage,
+  } = useImageUpload({
+    compress: true, // 압축 활성화 (필요에 따라 false로 설정 가능)
+    maxSizeMB: 1, // 최대 1MB
+    maxWidthOrHeight: 1920,
+    initialImageUrl: initialData?.image, // 초기 이미지 URL 설정
+  });
 
-  // 활성화된 섹션 상태
-  const [activeSection, setActiveSection] = useState(1);
+  // 파일 업로드 훅 사용
+  const {
+    files,
+    totalSizeFormatted,
+    sizePercentage,
+    isUploading: isFilesUploading,
+    error: filesError,
+    handleFileSelect,
+    removeFile,
+    uploadFiles,
+    formatFileSize,
+    cleanup: cleanupFiles,
+  } = useFileUpload({
+    maxFileSize: 2, // 개별 파일 최대 2MB
+    maxTotalSize: 10, // 총 파일 최대 10MB
+    initialFiles: initialData?.attachments || [], // 초기 파일 목록 설정
+  });
 
-  // 모바일 상태
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-  // 날짜 입력 필드 관련 이벤트 처리
+  // Firestore에서 카테고리 데이터 불러오기
   useEffect(() => {
-    // 날짜 입력 필드 외부 클릭 시 달력 닫기
-    const handleClickOutside = (e) => {
-      const dateInputs = document.querySelectorAll('input[type="date"]');
-      dateInputs.forEach((input) => {
-        // 클릭된 요소가 현재 날짜 입력 필드가 아니면 포커스 제거
-        if (input !== e.target && !input.contains(e.target)) {
-          input.blur();
-        }
-      });
-    };
-
-    // 다른 입력 필드 클릭 시 열린 달력 닫기
-    const handleInputFocus = (e) => {
-      if (e.target.type !== "date") {
-        const dateInputs = document.querySelectorAll('input[type="date"]');
-        dateInputs.forEach((input) => input.blur());
+    const fetchCategories = async () => {
+      try {
+        const data = await getCollection();
+        setCategories(data);
+      } catch (error) {
+        console.error(
+          "카테고리 데이터를 불러오는 중 오류가 발생했습니다:",
+          error
+        );
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("focusin", handleInputFocus);
+    fetchCategories();
+  }, [getCollection]);
 
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("focusin", handleInputFocus);
-    };
-  }, []);
-
-  // 섹션 이동 함수
-  const scrollToSection = (sectionId) => {
-    setActiveSection(sectionId);
-    if (sectionRefs[sectionId]?.current) {
-      sectionRefs[sectionId].current.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
-  };
-
-  // 카테고리 변경 시 사양 템플릿 업데이트
+  // 초기 데이터가 변경되면 폼 데이터 업데이트
   useEffect(() => {
-    if (formData.category && specTemplates[formData.category]) {
-      // 기존 값 유지하면서 템플릿 업데이트
-      const templateFields = specTemplates[formData.category].map((field) => {
-        const existingValue =
-          formData.specifications && formData.specifications[field.id];
-        return {
-          ...field,
-          value:
-            existingValue !== undefined ? existingValue : field.value || "",
-        };
+    if (initialData) {
+      setFormData(initialData);
+
+      // 커스텀 사양 필드 설정
+      if (initialData.customSpecifications) {
+        const customFieldsArray = Object.entries(
+          initialData.customSpecifications
+        ).map(([name, value]) => ({
+          name,
+          value,
+        }));
+        setCustomFields(customFieldsArray);
+      }
+    }
+  }, [initialData]);
+
+  // 컴포넌트 언마운트 시 리소스 정리
+  useEffect(() => {
+    return () => {
+      cleanupImage();
+      cleanupFiles();
+    };
+  }, [cleanupImage, cleanupFiles]);
+
+  // 카테고리 변경 시 사양 필드 업데이트
+  useEffect(() => {
+    if (formData.category && categories.length > 0) {
+      const selectedCategory = categories.find(
+        (cat) => cat.name === formData.category
+      );
+      if (selectedCategory && selectedCategory.specFields) {
+        updateSpecFieldsFromCategory(
+          selectedCategory.specFields,
+          formData.specifications || {}
+        );
+      } else {
+        setSpecFields([]);
+      }
+    }
+  }, [formData.category, categories]);
+
+  // 카테고리에 따른 사양 필드 업데이트 함수
+  const updateSpecFieldsFromCategory = (
+    categorySpecFields,
+    existingSpecs = {}
+  ) => {
+    if (categorySpecFields && categorySpecFields.length > 0) {
+      // 새 템플릿에 기존 값 적용
+      const newSpecFields = categorySpecFields.map((field) => ({
+        ...field,
+        value: existingSpecs[field.id] || "",
+      }));
+
+      setSpecFields(newSpecFields);
+
+      // formData의 specifications 업데이트 - 기존 값 유지
+      const updatedSpecs = { ...existingSpecs };
+      newSpecFields.forEach((field) => {
+        // 기존 값이 없는 경우에만 빈 문자열로 초기화
+        if (updatedSpecs[field.id] === undefined) {
+          updatedSpecs[field.id] = "";
+        }
       });
-      setSpecFields(templateFields);
+
+      setFormData((prev) => ({
+        ...prev,
+        specifications: updatedSpecs,
+      }));
     } else {
       setSpecFields([]);
     }
-  }, [formData.category]);
+  };
 
-  // 카테고리 변경 시 감가상각 정보 업데이트 (기존 값이 없을 경우에만)
-  useEffect(() => {
-    if (formData.category && !formData.depreciation.method) {
-      // 여기서는 카테고리별 기본 감가상각 정보를 설정할 수 있습니다.
-      const defaultDepreciation = {
-        데스크탑: {
-          method: "straight-line",
-          years: 4,
-          residualValueType: "percentage",
-          residualValue: 10,
-        },
-        노트북: {
-          method: "straight-line",
-          years: 3,
-          residualValueType: "fixed",
-          residualValue: 1000,
-        },
-        모니터: {
-          method: "straight-line",
-          years: 5,
-          residualValueType: "percentage",
-          residualValue: 5,
-        },
-        모바일기기: {
-          method: "straight-line",
-          years: 2,
-          residualValueType: "fixed",
-          residualValue: 1000,
-        },
-        주변기기: {
-          method: "straight-line",
-          years: 3,
-          residualValueType: "percentage",
-          residualValue: 10,
-        },
-        사무기기: {
-          method: "straight-line",
-          years: 5,
-          residualValueType: "fixed",
-          residualValue: 1000,
-        },
-        서버: {
-          method: "straight-line",
-          years: 4,
-          residualValueType: "percentage",
-          residualValue: 12,
-        },
-        네트워크장비: {
-          method: "straight-line",
-          years: 3,
-          residualValueType: "fixed",
-          residualValue: 1000,
-        },
-        소프트웨어: {
-          method: "straight-line",
-          years: 1,
-          residualValueType: "fixed",
-          residualValue: 0,
-        },
-        가구: {
-          method: "straight-line",
-          years: 7,
-          residualValueType: "percentage",
-          residualValue: 2,
-        },
-        기타: {
-          method: "straight-line",
-          years: 5,
-          residualValueType: "fixed",
-          residualValue: 1000,
-        },
-      };
-
-      if (defaultDepreciation[formData.category]) {
-        setFormData((prev) => ({
-          ...prev,
-          depreciation: defaultDepreciation[formData.category],
-        }));
-      }
-    }
-  }, [formData.category]);
-
-  // 일반 필드 변경 핸들러
+  // 입력 필드 변경 핸들러
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
+    setFormData((prevData) => ({
+      ...prevData,
       [name]: value,
     }));
   };
 
-  // 감가상각 필드 변경 핸들러
-  const handleDepreciationChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      depreciation: {
-        ...prev.depreciation,
-        [name]:
-          name === "years" || name === "residualValue"
-            ? name === "residualValue" &&
-              prev.depreciation.residualValueType === "fixed"
-              ? Number.parseInt(value)
-              : name === "years"
-              ? Number.parseInt(value)
-              : Number.parseFloat(value)
-            : value,
-      },
-    }));
-  };
-
-  // 사양 필드 변경 핸들러
+  // 사양 정보 변경 핸들러
   const handleSpecChange = (id, value) => {
-    setSpecFields((prev) =>
-      prev.map((field) => (field.id === id ? { ...field, value } : field))
+    const updatedFields = specFields.map((field) =>
+      field.id === id ? { ...field, value } : field
     );
+    setSpecFields(updatedFields);
 
     // formData의 specifications 업데이트
-    setFormData((prev) => ({
-      ...prev,
-      specifications: {
-        ...prev.specifications,
-        [id]: value,
-      },
-    }));
+    const updatedSpecs = { ...formData.specifications } || {};
+    updatedSpecs[id] = value;
+
+    setFormData({
+      ...formData,
+      specifications: updatedSpecs,
+    });
   };
 
   // 커스텀 필드 변경 핸들러
-  const handleCustomFieldChange = (index, field, value) => {
+  const handleCustomFieldChange = (index, key, value) => {
     const updatedFields = [...customFields];
-    if (field === "name") {
-      updatedFields[index].name = value;
-    } else {
-      updatedFields[index].value = value;
-
-      // formData의 specifications 업데이트
-      if (updatedFields[index].name) {
-        setFormData((prev) => ({
-          ...prev,
-          specifications: {
-            ...prev.specifications,
-            [updatedFields[index].name]: value,
-          },
-        }));
-      }
-    }
+    updatedFields[index][key] = value;
     setCustomFields(updatedFields);
+
+    // formData의 customSpecifications 업데이트
+    const updatedCustomSpecs = {};
+    updatedFields.forEach((field) => {
+      if (field.name) {
+        updatedCustomSpecs[field.name] = field.value;
+      }
+    });
+
+    setFormData({
+      ...formData,
+      customSpecifications: updatedCustomSpecs,
+    });
   };
 
   // 커스텀 필드 추가 핸들러
@@ -285,481 +237,275 @@ const AssetsForm = ({ initialData, onSubmit, onCancel }) => {
   // 커스텀 필드 삭제 핸들러
   const removeCustomField = (index) => {
     const updatedFields = [...customFields];
-
-    // formData에서도 해당 필드 제거
-    if (updatedFields[index].name) {
-      setFormData((prev) => {
-        const updatedSpecs = { ...prev.specifications };
-        delete updatedSpecs[updatedFields[index].name];
-        return {
-          ...prev,
-          specifications: updatedSpecs,
-        };
-      });
-    }
-
     updatedFields.splice(index, 1);
     setCustomFields(updatedFields);
-  };
 
-  // 이미지 업로드 핸들러
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // 이미지 리셋 핸들러
-  const resetImage = () => {
-    setImagePreview(initialData.imageUrl || null);
-    setImageFile(null);
-  };
-
-  // 첨부파일 업로드 핸들러
-  const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length > 0) {
-      const newAttachments = files.map((file) => ({
-        id: Date.now() + Math.random().toString(36).substring(2, 9),
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        file: file,
-        date: new Date().toISOString().split("T")[0],
-      }));
-      setAttachments((prev) => [...prev, ...newAttachments]);
-    }
-  };
-
-  // 첨부파일 삭제 핸들러
-  const removeAttachment = (id) => {
-    setAttachments((prev) => prev.filter((attachment) => attachment.id !== id));
-  };
-
-  // 필수 필드 검증 함수 추가
-  const validateForm = () => {
-    const requiredFields = [
-      "name",
-      "category",
-      "serialNumber",
-      "purchaseDate",
-      "purchasePrice",
-    ];
-    const errors = [];
-
-    requiredFields.forEach((field) => {
-      if (!formData[field]) {
-        errors.push(
-          `${
-            field === "name"
-              ? "자산명"
-              : field === "category"
-              ? "카테고리"
-              : field === "serialNumber"
-              ? "시리얼 번호"
-              : field === "purchaseDate"
-              ? "구매일"
-              : field === "purchasePrice"
-              ? "구매가격"
-              : field
-          }은(는) 필수 입력 항목입니다.`
-        );
+    // formData의 customSpecifications 업데이트
+    const updatedCustomSpecs = {};
+    updatedFields.forEach((field) => {
+      if (field.name) {
+        updatedCustomSpecs[field.name] = field.value;
       }
     });
 
-    return errors;
-  };
-
-  // 폼 제출 핸들러 수정
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    // 필수 필드 검증
-    const errors = validateForm();
-    if (errors.length > 0) {
-      alert(errors.join("\n"));
-      return;
-    }
-
-    // 사양 정보 수집
-    const specifications = {};
-
-    // 템플릿 사양 필드 수집
-    specFields.forEach((field) => {
-      if (field.value) {
-        specifications[field.id] = field.value;
-      }
-    });
-
-    // 커스텀 필드 수집
-    customFields.forEach((field) => {
-      if (field.name && field.value) {
-        specifications[field.name] = field.value;
-      }
-    });
-
-    // 최종 데이터 준비
-    const finalFormData = {
+    setFormData({
       ...formData,
-      specifications,
-      image: imageFile,
-      imagePreview,
-      attachments,
-    };
-
-    // 부모 컴포넌트에 데이터 전달
-    onSubmit(finalFormData);
+      customSpecifications: updatedCustomSpecs,
+    });
   };
 
-  // 섹션 데이터 - 사용자 스토리에 맞게 순서 재구성
-  const sections = [
-    {
-      id: 1,
-      title: "카테고리 선택",
-      icon: <Tag className="h-5 w-5 text-purple-500" />,
-    },
-    {
-      id: 2,
-      title: "기본 정보",
-      icon: <ClipboardList className="h-5 w-5 text-blue-500" />,
-    },
-    {
-      id: 3,
-      title: "사양 정보",
-      icon: <Settings className="h-5 w-5 text-green-500" />,
-    },
-    {
-      id: 4,
-      title: "구매 정보",
-      icon: <DollarSign className="h-5 w-5 text-yellow-500" />,
-    },
-    {
-      id: 5,
-      title: "할당 정보",
-      icon: <User className="h-5 w-5 text-red-500" />,
-    },
-    {
-      id: 6,
-      title: "감가상각",
-      icon: <TrendingDown className="h-5 w-5 text-cyan-500" />,
-    },
-    {
-      id: 7,
-      title: "이미지 및 첨부파일",
-      icon: <Paperclip className="h-5 w-5 text-indigo-500" />,
-    },
-    {
-      id: 8,
-      title: "비고",
-      icon: <FileText className="h-5 w-5 text-pink-500" />,
-    },
-  ];
-
-  // 모바일 상태 업데이트
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const [currentSection, setCurrentSection] = useState(1);
-
-  useLayoutEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const sectionId = Number.parseInt(entry.target.id.split("-")[1]);
-            setCurrentSection(sectionId);
-          }
-        });
-      },
-      {
-        threshold: 0.5,
-      }
-    );
-
-    for (let i = 1; i <= sections.length; i++) {
-      const section = document.getElementById(`section-${i}`);
-      if (section) {
-        observer.observe(section);
-      }
-    }
-
-    return () => {
-      for (let i = 1; i <= sections.length; i++) {
-        const section = document.getElementById(`section-${i}`);
-        if (section) {
-          observer.unobserve(section);
+  // 키 다운 이벤트 핸들러 - 엔터키 제출 방지
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") {
+      e.preventDefault();
+      // 다음 입력 필드로 포커스 이동 (선택 사항)
+      const form = e.target.form;
+      if (form) {
+        const index = Array.prototype.indexOf.call(form.elements, e.target);
+        if (index !== -1 && form.elements[index + 1]) {
+          form.elements[index + 1].focus();
         }
       }
-    };
-  }, [sections]);
+    }
+  };
 
+  // 폼 제출 핸들러
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      // 1. 이미지 업로드 (있는 경우)
+      const imageUrl = await uploadImage();
+
+      // 2. 첨부 파일 업로드
+      const allFiles = await uploadFiles();
+
+      // 3. 자산 데이터 저장
+      const assetData = {
+        ...formData,
+        image: imageUrl,
+        attachments: allFiles,
+      };
+
+      // 부모 컴포넌트의 onSubmit 함수 호출
+      onSubmit(assetData);
+    } catch (error) {
+      console.error("자산 저장 중 오류 발생:", error);
+      // 에러 처리 (메시지 컨텍스트가 있다면 사용)
+      if (window.showError) {
+        window.showError(
+          "저장 실패",
+          "자산 정보를 저장하는 중 오류가 발생했습니다."
+        );
+      } else {
+        alert("자산 정보를 저장하는 중 오류가 발생했습니다.");
+      }
+    }
+  };
+
+  // 폼 내용에 이미지 및 파일 업로드 섹션 추가
   return (
-    <div className="flex flex-col lg:flex-row gap-6 ">
-      {/* 데스크탑: 왼쪽 사이드바 (sticky) */}
-      {!isMobile && (
-        <div
-          className="hidden md:block w-64 sticky top-0 max-h-screen overflow-y-auto bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md"
-          style={{ maxHeight: "600px" }}
+    <div className="flex gap-6">
+      {/* 네비게이션 사이드바 */}
+      <FormNavigation
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        containerRef={formContainerRef}
+      />
+
+      {/* 폼 내용 */}
+      <div
+        ref={formContainerRef}
+        className={`flex-1 ${isMobile ? "pb-16" : ""}`}
+      >
+        <form
+          onSubmit={handleSubmit}
+          onKeyDown={handleKeyDown}
+          className="space-y-8"
         >
-          <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white">
-            등록 단계
-          </h2>
-          <div className="space-y-1">
-            {sections.map((section) => (
-              <button
-                key={section.id}
-                onClick={() => scrollToSection(section.id)}
-                className={`w-full flex items-center p-2 rounded-md transition-colors ${
-                  currentSection === section.id
-                    ? "bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400"
-                    : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-                }`}
-              >
-                <div className="flex items-center justify-center w-8 h-8">
-                  {section.icon}
-                </div>
-                <span className="ml-2">{section.title}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 메인 폼 영역 */}
-      <div className={`lg:w-3/4 ${isMobile ? "mb-14" : ""}`}>
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* 카테고리 선택 (새로운 섹션) */}
+          {/* 카테고리 섹션 */}
           <div
-            id="section-1"
-            ref={sectionRefs[1]}
-            className="transition-all duration-300 opacity-100"
+            className="bg-card rounded-lg border border-border p-6 shadow-sm scroll-mt-24"
+            data-section="category"
+            id="section-category"
           >
-            <div className="rounded-lg border border-border bg-card p-6 shadow-md">
-              <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <Tag className="mr-3 h-5 w-5 text-purple-500" />
-                <h2 className="text-xl font-semibold text-foreground">
-                  카테고리 선택
-                </h2>
-              </div>
-              <CategorySection
-                formData={formData}
-                handleChange={handleChange}
-              />
-            </div>
+            <h2 className="text-lg font-semibold mb-4 flex items-center">
+              <span className="inline-block p-2 rounded-md bg-purple-50 dark:bg-purple-900/20 mr-2">
+                <Layers className="h-5 w-5 text-purple-500" strokeWidth={1.5} />
+              </span>
+              카테고리
+            </h2>
+            <CategorySection formData={formData} handleChange={handleChange} />
           </div>
 
-          {/* 기본 정보 */}
+          {/* 기본 정보 섹션 */}
           <div
-            id="section-2"
-            ref={sectionRefs[2]}
-            className="transition-all duration-300 opacity-100"
+            className="bg-card rounded-lg border border-border p-6 shadow-sm scroll-mt-24"
+            data-section="basic"
+            id="section-basic"
           >
-            <div className="rounded-lg border border-border bg-card p-6 shadow-md">
-              <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <ClipboardList className="mr-3 h-5 w-5 text-blue-500" />
-                <h2 className="text-xl font-semibold text-foreground">
-                  기본 정보
-                </h2>
-              </div>
-              <BasicInfoSection
-                formData={formData}
-                handleChange={handleChange}
-              />
-            </div>
+            <h2 className="text-lg font-semibold mb-4 flex items-center">
+              <span className="inline-block p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 mr-2">
+                <Info className="h-5 w-5 text-blue-500" strokeWidth={1.5} />
+              </span>
+              기본 정보
+            </h2>
+            <BasicInfoSection formData={formData} handleChange={handleChange} />
           </div>
 
-          {/* 사양 정보 */}
+          {/* 구매 정보 섹션 */}
           <div
-            id="section-3"
-            ref={sectionRefs[3]}
-            className="transition-all duration-300 opacity-100"
+            className="bg-card rounded-lg border border-border p-6 shadow-sm scroll-mt-24"
+            data-section="purchase"
+            id="section-purchase"
           >
-            <div className="rounded-lg border border-border bg-card p-6 shadow-md">
-              <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <Settings className="mr-3 h-5 w-5 text-green-500" />
-                <h2 className="text-xl font-semibold text-foreground">
-                  사양 정보
-                </h2>
-              </div>
-              <SpecificationsSection
-                specFields={specFields}
-                handleSpecChange={handleSpecChange}
-                customFields={customFields}
-                handleCustomFieldChange={handleCustomFieldChange}
-                addCustomField={addCustomField}
-                removeCustomField={removeCustomField}
-                formData={formData}
-                handleChange={handleChange}
-              />
-            </div>
-          </div>
-
-          {/* 구매 정보 */}
-          <div
-            id="section-4"
-            ref={sectionRefs[4]}
-            className="transition-all duration-300 opacity-100"
-          >
-            <div className="rounded-lg border border-border bg-card p-6 shadow-md">
-              <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <DollarSign className="mr-3 h-5 w-5 text-yellow-500" />
-                <h2 className="text-xl font-semibold text-foreground">
-                  구매 정보
-                </h2>
-              </div>
-              <PurchaseInfoSection
-                formData={formData}
-                handleChange={handleChange}
-              />
-            </div>
-          </div>
-
-          {/* 할당 정보 */}
-          <div
-            id="section-5"
-            ref={sectionRefs[5]}
-            className="transition-all duration-300 opacity-100"
-          >
-            <div className="rounded-lg border border-border bg-card p-6 shadow-md">
-              <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <User className="mr-3 h-5 w-5 text-red-500" />
-                <h2 className="text-xl font-semibold text-foreground">
-                  할당 정보
-                </h2>
-              </div>
-              <AssignmentSection
-                formData={formData}
-                handleChange={handleChange}
-              />
-            </div>
-          </div>
-
-          {/* 감가상각 정보 */}
-          <div
-            id="section-6"
-            ref={sectionRefs[6]}
-            className="transition-all duration-300 opacity-100"
-          >
-            <div className="rounded-lg border border-border bg-card p-6 shadow-md">
-              <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <TrendingDown className="mr-3 h-5 w-5 text-cyan-500" />
-                <h2 className="text-xl font-semibold text-foreground">
-                  감가상각 정보
-                </h2>
-              </div>
-              <DepreciationSection
-                formData={formData}
-                handleChange={handleChange}
-                handleDepreciationChange={handleDepreciationChange}
-              />
-            </div>
-          </div>
-
-          {/* 이미지 및 첨부파일 */}
-          <div
-            id="section-7"
-            ref={sectionRefs[7]}
-            className="transition-all duration-300 opacity-100"
-          >
-            <div className="rounded-lg border border-border bg-card p-6 shadow-md">
-              <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <Paperclip className="mr-3 h-5 w-5 text-indigo-500" />
-                <h2 className="text-xl font-semibold text-foreground">
-                  이미지 및 첨부파일
-                </h2>
-              </div>
-              <div className="space-y-6">
-                <ImageUploadSection
-                  imagePreview={imagePreview}
-                  handleImageUpload={handleImageUpload}
-                  resetImage={resetImage}
+            <h2 className="text-lg font-semibold mb-4 flex items-center">
+              <span className="inline-block p-2 rounded-md bg-green-50 dark:bg-green-900/20 mr-2">
+                <CreditCard
+                  className="h-5 w-5 text-green-500"
+                  strokeWidth={1.5}
                 />
-                <div className="border-t border-border pt-6">
-                  <AttachmentsSection
-                    attachments={attachments}
-                    handleFileUpload={handleFileUpload}
-                    removeAttachment={removeAttachment}
-                    formatFileSize={formatFileSize}
-                  />
-                </div>
-              </div>
-            </div>
+              </span>
+              구매 정보
+            </h2>
+            <PurchaseInfoSection
+              formData={formData}
+              handleChange={handleChange}
+            />
           </div>
 
-          {/* 비고 */}
+          {/* 위치 및 할당 정보 섹션 */}
           <div
-            id="section-8"
-            ref={sectionRefs[8]}
-            className="transition-all duration-300 opacity-100"
+            className="bg-card rounded-lg border border-border p-6 shadow-sm scroll-mt-24"
+            data-section="location"
+            id="section-location"
           >
-            <div className="rounded-lg border border-border bg-card p-6 shadow-md">
-              <div className="flex items-center mb-4 pb-2 border-b border-border">
-                <FileText className="mr-3 h-5 w-5 text-pink-500" />
-                <h2 className="text-xl font-semibold text-foreground">비고</h2>
-              </div>
-              <NotesSection
-                notes={formData.notes}
-                handleChange={handleChange}
+            <h2 className="text-lg font-semibold mb-4 flex items-center">
+              <span className="inline-block p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 mr-2">
+                <MapPin className="h-5 w-5 text-amber-500" strokeWidth={1.5} />
+              </span>
+              위치 및 할당 정보
+            </h2>
+            <LocationAssignmentSection
+              formData={formData}
+              handleChange={handleChange}
+            />
+          </div>
+
+          {/* 사양 정보 섹션 */}
+          <div
+            className="bg-card rounded-lg border border-border p-6 shadow-sm scroll-mt-24"
+            data-section="specs"
+            id="section-specs"
+          >
+            <h2 className="text-lg font-semibold mb-4 flex items-center">
+              <span className="inline-block p-2 rounded-md bg-red-50 dark:bg-red-900/20 mr-2">
+                <Cpu className="h-5 w-5 text-red-500" strokeWidth={1.5} />
+              </span>
+              사양 정보
+            </h2>
+            <SpecificationsSection
+              specFields={specFields}
+              handleSpecChange={handleSpecChange}
+              customFields={customFields}
+              handleCustomFieldChange={handleCustomFieldChange}
+              addCustomField={addCustomField}
+              removeCustomField={removeCustomField}
+              formData={formData}
+              handleChange={handleChange}
+              handleSpecFieldsUpdate={setSpecFields}
+            />
+          </div>
+
+          {/* 이미지 및 첨부 파일 섹션 */}
+          <div
+            className="bg-card rounded-lg border border-border p-6 shadow-sm scroll-mt-24"
+            data-section="files"
+            id="section-files"
+          >
+            <h2 className="text-lg font-semibold mb-4 flex items-center">
+              <span className="inline-block p-2 rounded-md bg-indigo-50 dark:bg-indigo-900/20 mr-2">
+                <ImageIcon
+                  className="h-5 w-5 text-indigo-500"
+                  strokeWidth={1.5}
+                />
+              </span>
+              이미지 및 첨부 파일
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ImageUploadSection
+                imagePreview={imagePreview}
+                onImageSelect={handleImageSelect}
+                onReset={resetImage}
+                isCompressed={isCompressed}
+                isUploading={isImageUploading}
+                error={imageError}
+              />
+              <FileUploadSection
+                files={files}
+                onFileSelect={handleFileSelect}
+                onRemoveFile={removeFile}
+                totalSizeFormatted={totalSizeFormatted}
+                sizePercentage={sizePercentage}
+                isUploading={isFilesUploading}
+                error={filesError}
+                formatFileSize={formatFileSize}
               />
             </div>
           </div>
 
-          {/* 네비게이션 버튼 */}
-          <div className="flex justify-end items-center space-x-3 mt-8">
+          {/* 비고 섹션 */}
+          <div
+            className="bg-card rounded-lg border border-border p-6 shadow-sm scroll-mt-24"
+            data-section="notes"
+            id="section-notes"
+          >
+            <h2 className="text-lg font-semibold mb-4 flex items-center">
+              <span className="inline-block p-2 rounded-md bg-teal-50 dark:bg-teal-900/20 mr-2">
+                <FileText className="h-5 w-5 text-teal-500" strokeWidth={1.5} />
+              </span>
+              비고
+            </h2>
+            <NotesSection
+              notes={formData.notes || ""}
+              handleChange={handleChange}
+            />
+          </div>
+
+          {/* 버튼 그룹 */}
+          <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={onCancel}
               className={`${getButtonVariantClass(
                 "outline"
-              )} inline-flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors`}
+              )} px-4 py-2 flex items-center`}
             >
-              <X className="mr-2 -ml-1 h-4 w-4" />
+              <X className="mr-1.5 h-4 w-4" />
               취소
             </button>
             <button
               type="submit"
+              disabled={isSubmitting || isImageUploading || isFilesUploading}
               className={`${getButtonVariantClass(
                 "primary"
-              )} inline-flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors`}
+              )} px-4 py-2 flex items-center`}
             >
-              <Save className="mr-2 -ml-1 h-4 w-4" />
-              저장
+              {isSubmitting || isImageUploading || isFilesUploading ? (
+                <>
+                  <div className="mr-2 h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></div>
+                  저장 중...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-1.5 h-4 w-4" />
+                  저장
+                </>
+              )}
             </button>
           </div>
         </form>
       </div>
-
-      {/* 모바일 네비게이션: 하단에 아이콘만 표시 */}
-      {isMobile && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 shadow-md px-2 py-1 flex justify-around items-center">
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              onClick={() => scrollToSection(section.id)}
-              className={`p-2 rounded-full flex items-center justify-center w-10 h-10 ${
-                currentSection === section.id
-                  ? "bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400"
-                  : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-              }`}
-              aria-label={section.title}
-            >
-              {section.icon}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 };

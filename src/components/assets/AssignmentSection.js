@@ -1,188 +1,130 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { FaSearch, FaTimes } from "react-icons/fa";
-import { userData } from "../../data/mockData"; // mockData에서 userData 가져오기
+import { useState, useEffect } from "react";
+import { FaUser, FaBuilding, FaMapMarkerAlt } from "react-icons/fa";
+import DateInput from "../common/DateInput";
+import PhoneInput from "../common/PhoneInput";
+import { useFirestore } from "../../hooks/useFirestore";
 
-// 달력 아이콘 SVG 컴포넌트 추가
-const CalendarIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none"
-  >
-    <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
-    <line x1="16" y1="2" x2="16" y2="6"></line>
-    <line x1="8" y1="2" x2="8" y2="6"></line>
-    <line x1="3" y1="10" x2="21" y2="10"></line>
-  </svg>
-);
+/**
+ * 자산 할당 정보 입력 섹션
+ * @param {Object} props
+ * @param {Object} props.formData - 폼 데이터
+ * @param {Function} props.handleChange - 입력 변경 핸들러
+ * @param {boolean} props.isInForm - 폼 내부에 있는지 여부
+ */
+const AssignmentSection = ({ formData, handleChange, isInForm = false }) => {
+  const [userSuggestions, setUserSuggestions] = useState([]);
+  const [departmentSuggestions, setDepartmentSuggestions] = useState([]);
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const [showUserSuggestions, setShowUserSuggestions] = useState(false);
+  const [showDepartmentSuggestions, setShowDepartmentSuggestions] =
+    useState(false);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
 
-const AssignmentSection = ({ formData, handleChange }) => {
-  // 사용자 검색 관련 상태
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [showResults, setShowResults] = useState(false);
-  const searchRef = useRef(null);
+  const { getCollection } = useFirestore("assets");
 
-  // 검색 결과 외부 클릭 감지
+  // 기존 자산 데이터에서 사용자, 부서, 위치 정보 로드
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setShowResults(false);
+    const loadSuggestions = async () => {
+      try {
+        const assets = await getCollection();
+
+        // 사용자 목록 추출
+        const users = [
+          ...new Set(assets.map((asset) => asset.assignedTo).filter(Boolean)),
+        ];
+        setUserSuggestions(users);
+
+        // 부서 목록 추출
+        const departments = [
+          ...new Set(assets.map((asset) => asset.department).filter(Boolean)),
+        ];
+        setDepartmentSuggestions(departments);
+
+        // 위치 목록 추출
+        const locations = [
+          ...new Set(assets.map((asset) => asset.location).filter(Boolean)),
+        ];
+        setLocationSuggestions(locations);
+      } catch (error) {
+        console.error("자동완성 데이터 로드 중 오류:", error);
       }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
 
-  // 검색어 변경 시 결과 필터링
-  useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setSearchResults([]);
-      return;
-    }
+    loadSuggestions();
+  }, [getCollection]);
 
-    const filteredResults = userData.filter(
-      (user) =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  // 필터링된 제안 목록
+  const filteredUserSuggestions = userSuggestions.filter((user) =>
+    user.toLowerCase().includes((formData.assignedTo || "").toLowerCase())
+  );
 
-    setSearchResults(filteredResults);
-    setShowResults(true);
-  }, [searchTerm]);
+  const filteredDepartmentSuggestions = departmentSuggestions.filter((dept) =>
+    dept.toLowerCase().includes((formData.department || "").toLowerCase())
+  );
 
-  // 검색창 초기화 및 사용자 정보 삭제
-  const clearUserSelection = () => {
-    const assignedToEvent = { target: { name: "assignedTo", value: "" } };
-    const departmentEvent = { target: { name: "department", value: "" } };
-    const emailEvent = { target: { name: "email", value: "" } };
-    const roleEvent = { target: { name: "role", value: "" } };
+  const filteredLocationSuggestions = locationSuggestions.filter((loc) =>
+    loc.toLowerCase().includes((formData.location || "").toLowerCase())
+  );
 
-    handleChange(assignedToEvent);
-    handleChange(departmentEvent);
-    handleChange(emailEvent);
-    handleChange(roleEvent);
-
-    setSearchTerm("");
-  };
-
-  // 검색 결과에서 사용자 선택
-  const handleSelectUser = (user) => {
-    const assignedToEvent = {
-      target: { name: "assignedTo", value: user.name },
+  // 제안 선택 핸들러
+  const handleSelectSuggestion = (field, value) => {
+    const event = {
+      target: {
+        name: field,
+        value: value,
+      },
     };
-    const departmentEvent = {
-      target: { name: "department", value: user.department },
-    };
-    const emailEvent = {
-      target: { name: "email", value: user.email },
-    };
-    const roleEvent = { target: { name: "role", value: user.role } };
+    handleChange(event);
 
-    handleChange(assignedToEvent);
-    handleChange(departmentEvent);
-    handleChange(emailEvent);
-    handleChange(roleEvent);
-
-    // 검색창에 선택한 사용자 이름 표시
-    setSearchTerm(user.name);
-    setShowResults(false);
-  };
-
-  // 날짜 입력 필드 클릭 핸들러
-  const handleDateInputClick = (e) => {
-    e.stopPropagation();
-
-    // 다른 열린 달력 닫기
-    const dateInputs = document.querySelectorAll('input[type="date"]');
-    dateInputs.forEach((input) => {
-      if (input !== e.target) {
-        input.blur();
-      }
-    });
+    // 제안 목록 닫기
+    if (field === "assignedTo") setShowUserSuggestions(false);
+    else if (field === "department") setShowDepartmentSuggestions(false);
+    else if (field === "location") setShowLocationSuggestions(false);
   };
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label
             htmlFor="assignedTo"
-            className="block text-sm font-medium text-foreground"
+            className="block text-sm font-medium text-muted-foreground"
           >
-            할당 대상
+            담당자 <span className="text-destructive">*</span>
           </label>
-          <div className="relative" ref={searchRef}>
-            <div className="flex">
-              <input
-                type="text"
-                id="searchUser"
-                name="assignedTo"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  // 검색어가 변경되면 사용자 정보 초기화
-                  if (
-                    formData.assignedTo &&
-                    e.target.value !== formData.assignedTo
-                  ) {
-                    clearUserSelection();
-                  }
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // 다른 열린 달력 닫기
-                  const dateInputs =
-                    document.querySelectorAll('input[type="date"]');
-                  dateInputs.forEach((input) => input.blur());
-                }}
-                className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                placeholder="사용자 검색 (이름, 부서, 이메일)"
-              />
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                {formData.assignedTo && (
-                  <button
-                    type="button"
-                    onClick={clearUserSelection}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <FaTimes />
-                  </button>
-                )}
-                {!formData.assignedTo && (
-                  <FaSearch className="text-muted-foreground pointer-events-none" />
-                )}
-              </div>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <FaUser className="h-4 w-4 text-muted-foreground" />
             </div>
+            <input
+              type="text"
+              id="assignedTo"
+              name="assignedTo"
+              value={formData.assignedTo || ""}
+              onChange={handleChange}
+              onFocus={() => setShowUserSuggestions(true)}
+              onBlur={() =>
+                setTimeout(() => setShowUserSuggestions(false), 200)
+              }
+              required
+              placeholder="담당자 이름"
+              className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+            />
 
-            {showResults && searchResults.length > 0 && (
-              <div className="absolute z-[70] mt-1 w-full bg-background border border-input rounded-md shadow-lg max-h-60 overflow-auto">
-                {searchResults.map((user) => (
+            {/* 사용자 자동완성 목록 */}
+            {showUserSuggestions && filteredUserSuggestions.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-background border border-input rounded-md shadow-lg max-h-60 overflow-auto">
+                {filteredUserSuggestions.map((user, index) => (
                   <div
-                    key={user.id}
-                    className="px-4 py-2 hover:bg-muted cursor-pointer flex flex-col"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSelectUser(user);
-                    }}
+                    key={index}
+                    className="px-4 py-2 hover:bg-muted cursor-pointer"
+                    onMouseDown={() =>
+                      handleSelectSuggestion("assignedTo", user)
+                    }
                   >
-                    <span className="font-medium">{user.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {user.department} | {user.email}
-                    </span>
+                    {user}
                   </div>
                 ))}
               </div>
@@ -193,80 +135,177 @@ const AssignmentSection = ({ formData, handleChange }) => {
         <div className="space-y-2">
           <label
             htmlFor="department"
-            className="block text-sm font-medium text-foreground"
+            className="block text-sm font-medium text-muted-foreground"
           >
-            부서
+            부서 <span className="text-destructive">*</span>
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <FaBuilding className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <input
+              type="text"
+              id="department"
+              name="department"
+              value={formData.department || ""}
+              onChange={handleChange}
+              onFocus={() => setShowDepartmentSuggestions(true)}
+              onBlur={() =>
+                setTimeout(() => setShowDepartmentSuggestions(false), 200)
+              }
+              required
+              placeholder="부서명"
+              className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+
+            {/* 부서 자동완성 목록 */}
+            {showDepartmentSuggestions &&
+              filteredDepartmentSuggestions.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-background border border-input rounded-md shadow-lg max-h-60 overflow-auto">
+                  {filteredDepartmentSuggestions.map((dept, index) => (
+                    <div
+                      key={index}
+                      className="px-4 py-2 hover:bg-muted cursor-pointer"
+                      onMouseDown={() =>
+                        handleSelectSuggestion("department", dept)
+                      }
+                    >
+                      {dept}
+                    </div>
+                  ))}
+                </div>
+              )}
+          </div>
+        </div>
+
+        <PhoneInput
+          id="contactNumber"
+          name="contactNumber"
+          label="연락처"
+          value={formData.contactNumber || ""}
+          onChange={handleChange}
+          placeholder="010-0000-0000"
+        />
+
+        <div className="space-y-2">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-muted-foreground"
+          >
+            이메일
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value={formData.email || ""}
+            onChange={handleChange}
+            placeholder="example@company.com"
+            className="w-full px-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label
+            htmlFor="role"
+            className="block text-sm font-medium text-muted-foreground"
+          >
+            직책
           </label>
           <input
             type="text"
-            id="department"
-            name="department"
-            value={formData.department || ""}
+            id="role"
+            name="role"
+            value={formData.role || ""}
             onChange={handleChange}
-            className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-            placeholder="부서명"
-            readOnly
+            placeholder="직책"
+            className="w-full px-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 
         <div className="space-y-2">
           <label
             htmlFor="location"
-            className="block text-sm font-medium text-foreground"
+            className="block text-sm font-medium text-muted-foreground"
           >
-            위치
-          </label>
-          <select
-            id="location"
-            name="location"
-            value={formData.location || ""}
-            onChange={handleChange}
-            onClick={(e) => {
-              e.stopPropagation();
-              // 다른 열린 달력 닫기
-              const dateInputs =
-                document.querySelectorAll('input[type="date"]');
-              dateInputs.forEach((input) => input.blur());
-            }}
-            className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-          >
-            <option value="">위치 선택</option>
-            <option value="본사 1층">본사 1층</option>
-            <option value="본사 2층">본사 2층</option>
-            <option value="본사 3층">본사 3층</option>
-            <option value="본사 4층">본사 4층</option>
-            <option value="지사 1층">지사 1층</option>
-            <option value="지사 2층">지사 2층</option>
-            <option value="데이터센터">데이터센터</option>
-            <option value="창고">창고</option>
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <label
-            htmlFor="assignedDate"
-            className="block text-sm font-medium text-foreground"
-          >
-            할당일
+            위치 <span className="text-destructive">*</span>
           </label>
           <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <FaMapMarkerAlt className="h-4 w-4 text-muted-foreground" />
+            </div>
             <input
-              type="date"
-              id="assignedDate"
-              name="assignedDate"
-              value={formData.assignedDate || ""}
+              type="text"
+              id="location"
+              name="location"
+              value={formData.location || ""}
               onChange={handleChange}
-              onClick={handleDateInputClick}
-              className="w-full rounded-md border border-input bg-background px-4 py-2 pr-10 text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+              onFocus={() => setShowLocationSuggestions(true)}
+              onBlur={() =>
+                setTimeout(() => setShowLocationSuggestions(false), 200)
+              }
+              required
+              placeholder="자산 위치"
+              className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <CalendarIcon />
+
+            {/* 위치 자동완성 목록 */}
+            {showLocationSuggestions &&
+              filteredLocationSuggestions.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-background border border-input rounded-md shadow-lg max-h-60 overflow-auto">
+                  {filteredLocationSuggestions.map((loc, index) => (
+                    <div
+                      key={index}
+                      className="px-4 py-2 hover:bg-muted cursor-pointer"
+                      onMouseDown={() =>
+                        handleSelectSuggestion("location", loc)
+                      }
+                    >
+                      {loc}
+                    </div>
+                  ))}
+                </div>
+              )}
           </div>
         </div>
+
+        <DateInput
+          id="assignedDate"
+          name="assignedDate"
+          label="할당일"
+          value={formData.assignedDate}
+          onChange={handleChange}
+          required
+        />
+
+        <DateInput
+          id="dueDate"
+          name="dueDate"
+          label="반납 예정일"
+          value={formData.dueDate}
+          onChange={handleChange}
+        />
       </div>
 
-      {/* 이메일 필드는 숨김 처리 (데이터만 저장) */}
-      <input type="hidden" name="email" value={formData.email || ""} />
-      <input type="hidden" name="role" value={formData.role || ""} />
+      {isInForm && (
+        <div className="space-y-2 mt-4">
+          <label
+            htmlFor="notes"
+            className="block text-sm font-medium text-muted-foreground"
+          >
+            비고
+          </label>
+          <textarea
+            id="notes"
+            name="notes"
+            value={formData.notes || ""}
+            onChange={handleChange}
+            rows={3}
+            placeholder="추가 정보를 입력하세요"
+            className="w-full px-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+      )}
     </div>
   );
 };

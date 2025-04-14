@@ -1,14 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
+import DateInput from "../common/DateInput";
+import NumberInput from "../common/NumberInput";
+import PhoneInput from "../common/PhoneInput";
 
 const PurchaseInfoSection = ({ formData, handleChange }) => {
-  // 오늘 날짜를 YYYY-MM-DD 형식으로 반환하는 함수
-  const getTodayDate = () => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
-  };
-
   // 구매일로부터 보증 만료일을 계산하는 함수
   const calculateWarrantyExpiry = (purchaseDate) => {
     if (!purchaseDate) return "";
@@ -24,7 +21,7 @@ const PurchaseInfoSection = ({ formData, handleChange }) => {
   useEffect(() => {
     // 구매일이 비어있는 경우에만 오늘 날짜로 설정
     if (!formData.purchaseDate) {
-      const today = getTodayDate();
+      const today = new Date().toISOString().split("T")[0];
 
       // 구매일 업데이트
       const purchaseDateEvent = {
@@ -77,73 +74,30 @@ const PurchaseInfoSection = ({ formData, handleChange }) => {
     }
   };
 
-  // 달력 아이콘 SVG
-  const CalendarIcon = () => (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none"
-    >
-      <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
-      <line x1="16" y1="2" x2="16" y2="6"></line>
-      <line x1="8" y1="2" x2="8" y2="6"></line>
-      <line x1="3" y1="10" x2="21" y2="10"></line>
-    </svg>
-  );
-
   return (
-    <div>
-      <h3 className="text-lg font-medium text-foreground mb-4">구매 정보</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label
-            htmlFor="purchaseDate"
-            className="block text-sm font-medium text-muted-foreground"
-          >
-            구매일
-          </label>
-          <div className="relative">
-            <input
-              type="date"
-              id="purchaseDate"
-              name="purchaseDate"
-              value={formData.purchaseDate}
-              onChange={handlePurchaseDateChange}
-              className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary pr-10"
-            />
-            <CalendarIcon />
-          </div>
-        </div>
-
-        <div>
-          <label
-            htmlFor="purchasePrice"
-            className="block text-sm font-medium text-muted-foreground"
-          >
-            구매 가격
-          </label>
-          <input
-            type="text"
-            id="purchasePrice"
-            name="purchasePrice"
-            value={formData.purchasePrice}
-            onChange={handleChange}
-            placeholder="예: 1,000,000"
-            className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-
-        <div>
+    <div className="animate-in fade-in duration-500">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <DateInput
+          id="purchaseDate"
+          name="purchaseDate"
+          label="구매일"
+          value={formData.purchaseDate}
+          onChange={handlePurchaseDateChange}
+          required
+        />
+        <NumberInput
+          id="purchasePrice"
+          name="purchasePrice"
+          label="구매 가격"
+          value={formData.purchasePrice}
+          onChange={handleChange}
+          prefix="₩"
+          placeholder="0"
+        />
+        <div className="space-y-2">
           <label
             htmlFor="supplier"
-            className="block text-sm font-medium text-muted-foreground"
+            className="block text-sm font-medium text-foreground"
           >
             공급업체
           </label>
@@ -151,49 +105,36 @@ const PurchaseInfoSection = ({ formData, handleChange }) => {
             type="text"
             id="supplier"
             name="supplier"
-            value={formData.supplier}
+            value={formData.supplier || ""}
             onChange={handleChange}
-            className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+            placeholder="공급업체명"
           />
         </div>
-
-        <div>
-          <label
-            htmlFor="warrantyExpiry"
-            className="block text-sm font-medium text-muted-foreground"
-          >
-            보증 만료일
-          </label>
-          <div className="relative">
-            <input
-              type="date"
-              id="warrantyExpiry"
-              name="warrantyExpiry"
-              value={formData.warrantyExpiry}
-              onChange={handleChange}
-              className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary pr-10"
-            />
-            <CalendarIcon />
-          </div>
-        </div>
-
-        <div>
-          <label
-            htmlFor="currentValue"
-            className="block text-sm font-medium text-muted-foreground"
-          >
-            현재 가치
-          </label>
-          <input
-            type="text"
-            id="currentValue"
-            name="currentValue"
-            value={formData.currentValue}
-            onChange={handleChange}
-            placeholder="예: 1,000,000"
-            className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
+        <DateInput
+          id="warrantyExpiry"
+          name="warrantyExpiry"
+          label="보증 만료일"
+          value={formData.warrantyExpiry}
+          onChange={handleChange}
+        />
+        <NumberInput
+          id="currentValue"
+          name="currentValue"
+          label="현재 가치"
+          value={formData.currentValue}
+          onChange={handleChange}
+          prefix="₩"
+          placeholder="0"
+        />
+        <PhoneInput
+          id="supplierContact"
+          name="supplierContact"
+          label="공급업체 연락처"
+          value={formData.supplierContact || ""}
+          onChange={handleChange}
+          placeholder="02-1234-5678"
+        />
       </div>
     </div>
   );

@@ -1,5 +1,17 @@
 {
   "projects": {
     "default": "setflow-363f5"
+  },
+  "targets": {
+    "setflow-363f5": {
+      "hosting": {
+        "main": [
+          "setflow-363f5"
+        ],
+        "assets": [
+          "assets-setflow"
+        ]
+      }
+    }
   }
 }

@@ -12,6 +12,7 @@ import { getAllRoutes } from "./routes";
 import { isAuthenticated } from "./utils/checkAuth";
 import FullScreenLoading from "./components/common/FullScreenLoading";
 import "./styles/globals.css";
+import { MessageProvider } from "./context/MessageContext";
 
 const App = () => {
   // 로딩 상태 추가
@@ -100,32 +101,34 @@ const App = () => {
   }
 
   return (
-    <Router>
-      <Routes>
-        {routes.map((route) => (
-          <Route
-            key={route.id}
-            path={route.path}
-            element={
-              route.standalone ? (
-                <route.component />
-              ) : (
-                <ProtectedRoute requiresAuth={route.requiresAuth}>
-                  <Layout
-                    toggleTheme={toggleTheme}
-                    theme={theme}
-                    toggleSidebar={toggleSidebar}
-                    sidebarOpen={sidebarOpen}
-                  >
-                    <route.component />
-                  </Layout>
-                </ProtectedRoute>
-              )
-            }
-          />
-        ))}
-      </Routes>
-    </Router>
+    <MessageProvider>
+      <Router>
+        <Routes>
+          {routes.map((route) => (
+            <Route
+              key={route.id}
+              path={route.path}
+              element={
+                route.standalone ? (
+                  <route.component />
+                ) : (
+                  <ProtectedRoute requiresAuth={route.requiresAuth}>
+                    <Layout
+                      toggleTheme={toggleTheme}
+                      theme={theme}
+                      toggleSidebar={toggleSidebar}
+                      sidebarOpen={sidebarOpen}
+                    >
+                      <route.component />
+                    </Layout>
+                  </ProtectedRoute>
+                )
+              }
+            />
+          ))}
+        </Routes>
+      </Router>
+    </MessageProvider>
   );
 };
 

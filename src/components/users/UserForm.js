@@ -6,37 +6,20 @@ import { getButtonVariantClass } from "../../utils/themeUtils";
 import {
   User,
   Mail,
-  Phone,
   Building2,
   Briefcase,
-  BadgeCheck,
-  Calendar,
   Shield,
-  Lock,
+  MapPin,
   Save,
   X,
 } from "lucide-react";
-
-// 달력 아이콘 SVG 컴포넌트 추가
-const CalendarIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none"
-  >
-    <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
-    <line x1="16" y1="2" x2="16" y2="6"></line>
-    <line x1="8" y1="2" x2="8" y2="6"></line>
-    <line x1="3" y1="10" x2="21" y2="10"></line>
-  </svg>
-);
+import { departments } from "../../data/userInitialData";
+import PhoneInput from "../common/PhoneInput";
+import DateInput from "../common/DateInput";
+import EmployeeIdInput from "../common/EmployeeIdInput";
+import ProfileImageUpload from "./ProfileImageUpload";
+import useImageUpload from "../../hooks/useImageUpload";
+import { deleteFileFromStorage } from "../../hooks/storageUtils";
 
 const UserForm = ({ user, onSubmit, isEditing = false }) => {
   const [formData, setFormData] = useState({
@@ -47,34 +30,53 @@ const UserForm = ({ user, onSubmit, isEditing = false }) => {
     position: "",
     employeeId: "",
     joinDate: "",
-    status: "active",
-    permissions: "user",
-    profileImage: null,
+    status: "재직중",
+    role: "사용자",
+    location: "",
     ...user,
   });
 
-  const [departments, setDepartments] = useState([]);
-  const [previewImage, setPreviewImage] = useState(null);
   const [errors, setErrors] = useState({});
+  const [imageChanged, setImageChanged] = useState(false);
+  const [previousImageUrl, setPreviousImageUrl] = useState(
+    user?.profileImage || null
+  );
 
+  // 이미지 업로드 훅 사용
+  const {
+    imagePreview,
+    isCompressed,
+    isUploading,
+    error: imageError,
+    handleImageSelect: originalHandleImageSelect,
+    uploadImage,
+    resetImage: originalResetImage,
+    cleanup: cleanupImage,
+  } = useImageUpload({
+    initialImageUrl: user?.profileImage || null,
+    compress: true,
+    maxSizeMB: 1,
+    maxWidthOrHeight: 800,
+  });
+
+  // 이미지 선택 핸들러 래퍼 - 이미지 변경 상태 추적
+  const handleImageSelect = (file) => {
+    setImageChanged(true);
+    originalHandleImageSelect(file);
+  };
+
+  // 이미지 초기화 핸들러 래퍼 - 이미지 변경 상태 추적
+  const resetImage = () => {
+    setImageChanged(true);
+    originalResetImage();
+  };
+
+  // 컴포넌트 언마운트 시 정리
   useEffect(() => {
-    // 부서 목록 가져오기 (실제 구현에서는 API 호출)
-    setDepartments([
-      { id: 1, name: "개발팀" },
-      { id: 2, name: "마케팅팀" },
-      { id: 3, name: "디자인팀" },
-      { id: 4, name: "영업팀" },
-      { id: 5, name: "인사팀" },
-      { id: 6, name: "재무팀" },
-      { id: 7, name: "IT 인프라팀" },
-      { id: 8, name: "고객지원팀" },
-    ]);
-
-    // 수정 모드일 경우 프로필 이미지 미리보기 설정
-    if (isEditing && user?.profileImageUrl) {
-      setPreviewImage(user.profileImageUrl);
-    }
-  }, [isEditing, user]);
+    return () => {
+      cleanupImage();
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -83,20 +85,6 @@ const UserForm = ({ user, onSubmit, isEditing = false }) => {
     // 입력 시 해당 필드의 에러 메시지 제거
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
-    }
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData((prev) => ({ ...prev, profileImage: file }));
-
-      // 이미지 미리보기 생성
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
@@ -118,60 +106,78 @@ const UserForm = ({ user, onSubmit, isEditing = false }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (validateForm()) {
-      onSubmit(formData);
-    }
-  };
+      try {
+        let profileImageUrl = user?.profileImage;
 
-  // 날짜 입력 필드 클릭 핸들러
-  const handleDateInputClick = (e) => {
-    e.stopPropagation();
+        // 이미지가 변경된 경우에만 처리
+        if (imageChanged) {
+          // 이미지가 삭제된 경우 (resetImage 호출 후)
+          if (!imagePreview && previousImageUrl) {
+            try {
+              await deleteFileFromStorage(previousImageUrl);
+              console.log("기존 프로필 이미지 삭제 완료:", previousImageUrl);
+              profileImageUrl = null;
+            } catch (error) {
+              console.error("기존 프로필 이미지 삭제 중 오류 발생:", error);
+              // 오류가 발생해도 계속 진행
+            }
+          }
+          // 새 이미지가 업로드된 경우
+          else if (imagePreview) {
+            // 새 이미지 업로드
+            const newImageUrl = await uploadImage("users/profiles");
 
-    // 다른 열린 달력 닫기
-    const dateInputs = document.querySelectorAll('input[type="date"]');
-    dateInputs.forEach((input) => {
-      if (input !== e.target) {
-        input.blur();
+            // 업로드 성공 및 기존 이미지가 있으면 기존 이미지 삭제
+            if (
+              newImageUrl &&
+              previousImageUrl &&
+              newImageUrl !== previousImageUrl
+            ) {
+              try {
+                await deleteFileFromStorage(previousImageUrl);
+                console.log("기존 프로필 이미지 삭제 완료:", previousImageUrl);
+              } catch (error) {
+                console.error("기존 프로필 이미지 삭제 중 오류 발생:", error);
+                // 오류가 발생해도 계속 진행
+              }
+            }
+
+            profileImageUrl = newImageUrl;
+          }
+        }
+
+        // 폼 데이터와 이미지 URL 결합
+        const userData = {
+          ...formData,
+          profileImage: profileImageUrl,
+        };
+
+        // createdAt, updatedAt은 useFirestore에서 처리하므로 여기서는 제거
+
+        onSubmit(userData);
+      } catch (error) {
+        console.error("사용자 등록 중 오류 발생:", error);
       }
-    });
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* 프로필 이미지 업로드 */}
-        <div className="md:col-span-2 flex flex-col items-center">
-          <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-border bg-muted mb-4">
-            {previewImage ? (
-              <img
-                src={previewImage || "/placeholder.svg"}
-                alt="프로필 미리보기"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground">
-                <User size={40} className="text-gray-400" />
-              </div>
-            )}
-          </div>
-          <label className="cursor-pointer">
-            <span
-              className={`px-4 py-2 rounded-md ${getButtonVariantClass(
-                "secondary"
-              )}`}
-            >
-              프로필 이미지 {isEditing ? "변경" : "업로드"}
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageChange}
-            />
-          </label>
+        {/* 프로필 이미지 업로드 - 새로운 컴포넌트 사용 */}
+        <div className="md:col-span-2 flex justify-center">
+          <ProfileImageUpload
+            imagePreview={imagePreview}
+            onImageSelect={handleImageSelect}
+            onReset={resetImage}
+            isCompressed={isCompressed}
+            isUploading={isUploading}
+            error={imageError}
+          />
         </div>
 
         {/* 기본 정보 */}
@@ -221,19 +227,13 @@ const UserForm = ({ user, onSubmit, isEditing = false }) => {
           </div>
 
           <div>
-            <label htmlFor="phone" className="block text-sm font-medium mb-1">
-              <span className="flex items-center">
-                <Phone className="mr-1 text-green-500 h-4 w-4" />
-                전화번호
-              </span>
-            </label>
-            <input
-              type="tel"
+            <PhoneInput
               id="phone"
               name="phone"
-              value={formData.phone}
+              label="전화번호"
+              value={formData.phone || ""}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="010-0000-0000"
             />
           </div>
         </div>
@@ -253,7 +253,7 @@ const UserForm = ({ user, onSubmit, isEditing = false }) => {
             <select
               id="department"
               name="department"
-              value={formData.department}
+              value={formData.department || ""}
               onChange={handleChange}
               className={`w-full px-3 py-2 border rounded-md ${
                 errors.department ? "border-destructive" : "border-input"
@@ -287,7 +287,7 @@ const UserForm = ({ user, onSubmit, isEditing = false }) => {
               type="text"
               id="position"
               name="position"
-              value={formData.position}
+              value={formData.position || ""}
               onChange={handleChange}
               className={`w-full px-3 py-2 border rounded-md ${
                 errors.position ? "border-destructive" : "border-input"
@@ -299,55 +299,30 @@ const UserForm = ({ user, onSubmit, isEditing = false }) => {
           </div>
 
           <div>
-            <label
-              htmlFor="employeeId"
-              className="block text-sm font-medium mb-1"
-            >
-              <span className="flex items-center">
-                <BadgeCheck className="mr-1 text-red-500 h-4 w-4" />
-                사원번호 *
-              </span>
-            </label>
-            <input
-              type="text"
+            <EmployeeIdInput
               id="employeeId"
               name="employeeId"
-              value={formData.employeeId}
+              label="사원번호"
+              value={formData.employeeId || ""}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md ${
-                errors.employeeId ? "border-destructive" : "border-input"
-              } bg-background focus:outline-none focus:ring-2 focus:ring-primary`}
+              required={true}
+              isEditing={isEditing}
             />
-            {errors.employeeId && (
-              <p className="mt-1 text-sm text-destructive">
-                {errors.employeeId}
-              </p>
-            )}
           </div>
         </div>
       </div>
 
       {/* 추가 정보 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
-          <label htmlFor="joinDate" className="block text-sm font-medium mb-1">
-            <span className="flex items-center">
-              <Calendar className="mr-1 text-teal-500 h-4 w-4" />
-              입사일
-            </span>
-          </label>
-          <div className="relative">
-            <input
-              type="date"
-              id="joinDate"
-              name="joinDate"
-              value={formData.joinDate}
-              onChange={handleChange}
-              onClick={handleDateInputClick}
-              className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary pr-10"
-            />
-            <CalendarIcon />
-          </div>
+          <DateInput
+            id="joinDate"
+            name="joinDate"
+            label="입사일"
+            value={formData.joinDate || ""}
+            onChange={handleChange}
+            placeholder="YYYY-MM-DD"
+          />
         </div>
 
         <div>
@@ -360,37 +335,52 @@ const UserForm = ({ user, onSubmit, isEditing = false }) => {
           <select
             id="status"
             name="status"
-            value={formData.status}
+            value={formData.status || "재직중"}
             onChange={handleChange}
             className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="active">재직중</option>
-            <option value="inactive">퇴사</option>
-            <option value="leave">휴직</option>
+            <option value="재직중">재직중</option>
+            <option value="휴직중">휴직중</option>
+            <option value="퇴사">퇴사</option>
           </select>
         </div>
 
         <div>
-          <label
-            htmlFor="permissions"
-            className="block text-sm font-medium mb-1"
-          >
+          <label htmlFor="role" className="block text-sm font-medium mb-1">
             <span className="flex items-center">
-              <Lock className="mr-1 text-indigo-500 h-4 w-4" />
+              <Shield className="mr-1 text-indigo-500 h-4 w-4" />
               권한
             </span>
           </label>
           <select
-            id="permissions"
-            name="permissions"
-            value={formData.permissions}
+            id="role"
+            name="role"
+            value={formData.role || "사용자"}
             onChange={handleChange}
             className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="user">일반 사용자</option>
-            <option value="manager">관리자</option>
-            <option value="admin">시스템 관리자</option>
+            <option value="사용자">일반 사용자</option>
+            <option value="편집자">편집자</option>
+            <option value="관리자">관리자</option>
           </select>
+        </div>
+
+        <div>
+          <label htmlFor="location" className="block text-sm font-medium mb-1">
+            <span className="flex items-center">
+              <MapPin className="mr-1 text-pink-500 h-4 w-4" />
+              위치
+            </span>
+          </label>
+          <input
+            type="text"
+            id="location"
+            name="location"
+            value={formData.location || ""}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="예: 본사 3층"
+          />
         </div>
       </div>
 
@@ -408,6 +398,7 @@ const UserForm = ({ user, onSubmit, isEditing = false }) => {
         <button
           type="submit"
           className={`px-4 py-2 rounded-md ${getButtonVariantClass("primary")}`}
+          disabled={isUploading}
         >
           <span className="flex items-center">
             <Save className="mr-2 h-4 w-4" />

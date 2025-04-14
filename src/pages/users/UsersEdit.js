@@ -4,10 +4,15 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageContainer from "../../components/common/PageContainer";
 import UserForm from "../../components/users/UserForm";
+import { useFirestore } from "../../hooks/useFirestore";
+import { useMessageContext } from "../../context/MessageContext";
 
 const UsersEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { getDocument, updateDocument } = useFirestore("users");
+  const { showSuccess, showError } = useMessageContext();
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -16,58 +21,47 @@ const UsersEdit = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        // 실제 구현에서는 API 호출
-        // 예시 데이터
-        const userData = {
-          id: Number.parseInt(id),
-          name: "김철수",
-          email: "kim@example.com",
-          phone: "010-1234-5678",
-          department: "개발팀",
-          position: "선임 개발자",
-          employeeId: "EMP-2023-001",
-          joinDate: "2023-01-15",
-          status: "active",
-          permissions: "user",
-          profileImageUrl: null,
-        };
+        setLoading(true);
+        const data = await getDocument(id);
 
-        setTimeout(() => {
-          setUser(userData);
-          setLoading(false);
-        }, 800);
-      } catch (error) {
-        console.error("사용자 정보를 불러오는 중 오류가 발생했습니다:", error);
-        setError("사용자 정보를 불러올 수 없습니다.");
+        if (!data) {
+          throw new Error("사용자를 찾을 수 없습니다.");
+        }
+
+        setUser(data);
+      } catch (err) {
+        console.error("사용자 정보를 불러오는 중 오류가 발생했습니다:", err);
+        setError(err.message || "사용자 정보를 불러올 수 없습니다.");
+      } finally {
         setLoading(false);
       }
     };
 
     fetchUser();
-  }, [id]);
+  }, [id, getDocument]);
 
   const handleSubmit = async (formData) => {
     try {
       setSubmitting(true);
-      // 실제 구현에서는 API 호출
-      console.log("사용자 정보 수정:", formData);
 
-      // 성공 시 사용자 목록 페이지로 이동
-      setTimeout(() => {
-        setSubmitting(false);
-        navigate("/users", {
-          state: { message: "사용자 정보가 성공적으로 수정되었습니다." },
-        });
-      }, 1000);
+      // Firestore 업데이트 (updatedAt은 useFirestore에서 처리)
+      await updateDocument(id, formData);
+
+      showSuccess(
+        "사용자 정보 수정 완료",
+        "사용자 정보가 성공적으로 업데이트되었습니다."
+      );
+      navigate("/users");
     } catch (error) {
       console.error("사용자 정보 수정 중 오류 발생:", error);
+      showError("수정 오류", "사용자 정보 수정에 실패했습니다.");
       setSubmitting(false);
     }
   };
 
   if (loading) {
     return (
-      <PageContainer>
+      <PageContainer title="사용자 정보 수정">
         <div className="flex justify-center items-center h-64">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           <span className="ml-2 text-muted-foreground">
@@ -80,7 +74,7 @@ const UsersEdit = () => {
 
   if (error) {
     return (
-      <PageContainer>
+      <PageContainer title="사용자 정보 수정">
         <div className="bg-destructive/10 text-destructive p-4 rounded-md">
           <p>{error}</p>
           <button
@@ -95,12 +89,8 @@ const UsersEdit = () => {
   }
 
   return (
-    <PageContainer>
+    <PageContainer title="사용자 정보 수정">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">사용자 정보 수정</h1>
-        </div>
-
         <div className="bg-card rounded-lg shadow p-6 border border-border">
           {submitting ? (
             <div className="flex justify-center items-center h-64">

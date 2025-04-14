@@ -1,19 +1,25 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import PageContainer from "../../components/common/PageContainer";
 import { getButtonVariantClass } from "../../utils/themeUtils";
-import { List, Search, MapPin, Info } from "lucide-react";
-import PageLoading from "../../components/common/PageLoading";
+import { List, Search, MapPin, Edit, FileText } from "lucide-react";
+import { useFirestore } from "../../hooks/useFirestore";
+import { useMessageContext } from "../../context/MessageContext";
 
 const LocationsMap = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   const locationId = searchParams.get("id");
+  const { getCollection, getDocument } = useFirestore("locations");
+  const { showError } = useMessageContext();
+
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [locations, setLocations] = useState([]);
+  const [filteredLocations, setFilteredLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [mapScriptLoaded, setMapScriptLoaded] = useState(false);
 
@@ -24,158 +30,87 @@ const LocationsMap = () => {
 
   // 카카오맵 스크립트 로드
   useEffect(() => {
-    // 이미 스크립트가 로드되어 있는지 확인
-    const existingScript = document.getElementById("kakao-map-script");
-    if (existingScript) {
-      // 이미 스크립트가 있으면 로드 완료 상태로 설정
-      setMapScriptLoaded(true);
-      return;
-    }
-
     const script = document.createElement("script");
-    script.id = "kakao-map-script"; // ID 추가하여 중복 로드 방지
     script.async = true;
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=0ad5b2c2799249be175ae1d00bfc1173&autoload=false`;
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.REACT_APP_KAKAO_MAP_API_KEY}&autoload=false`;
+    document.head.appendChild(script);
 
     script.onload = () => {
       window.kakao.maps.load(() => {
-        console.log("Kakao Maps SDK loaded successfully");
         setMapScriptLoaded(true);
       });
     };
 
-    script.onerror = (error) => {
-      console.error("Error loading Kakao Maps SDK:", error);
-    };
-
-    document.head.appendChild(script);
-
     return () => {
-      // 컴포넌트 언마운트 시 스크립트 제거는 하지 않음
-      // 스크립트를 제거하면 다시 로드할 때 문제가 발생할 수 있음
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
+      }
     };
   }, []);
 
-  // 위치 데이터 로드 및 지도 초기화
+  // 위치 데이터 로드
   useEffect(() => {
-    if (!mapScriptLoaded) return;
-
     const fetchLocations = async () => {
       try {
-        console.log("Fetching location data...");
-        // 예시 위치 데이터
-        const data = [
-          {
-            id: 1,
-            name: "본사 1층",
-            address: "서울시 강남구 테헤란로 123",
-            assetCount: 45,
-            manager: "김관리자",
-            latitude: 37.5665,
-            longitude: 126.978,
-          },
-          {
-            id: 2,
-            name: "본사 2층",
-            address: "서울시 강남구 테헤란로 123",
-            assetCount: 62,
-            manager: "이관리자",
-            latitude: 37.5665,
-            longitude: 126.978,
-          },
-          {
-            id: 3,
-            name: "본사 3층",
-            address: "서울시 강남구 테헤란로 123",
-            assetCount: 58,
-            manager: "박관리자",
-            latitude: 37.5665,
-            longitude: 126.978,
-          },
-          {
-            id: 4,
-            name: "본사 4층",
-            address: "서울시 강남구 테헤란로 123",
-            assetCount: 51,
-            manager: "최관리자",
-            latitude: 37.5665,
-            longitude: 126.978,
-          },
-          {
-            id: 5,
-            name: "지사 1층",
-            address: "서울시 서초구 서초대로 456",
-            assetCount: 32,
-            manager: "정관리자",
-            latitude: 37.4969,
-            longitude: 127.0278,
-          },
-          {
-            id: 6,
-            name: "지사 2층",
-            address: "서울시 서초구 서초대로 456",
-            assetCount: 28,
-            manager: "한관리자",
-            latitude: 37.4969,
-            longitude: 127.0278,
-          },
-          {
-            id: 7,
-            name: "데이터센터",
-            address: "경기도 성남시 분당구 판교로 789",
-            assetCount: 24,
-            manager: "유관리자",
-            latitude: 37.4019,
-            longitude: 127.1128,
-          },
-          {
-            id: 8,
-            name: "창고",
-            address: "경기도 용인시 기흥구 동백로 101",
-            assetCount: 15,
-            manager: "조관리자",
-            latitude: 37.2747,
-            longitude: 127.1443,
-          },
-        ];
+        setLoading(true);
+        const data = await getCollection();
         setLocations(data);
+        setFilteredLocations(data);
 
         // URL에서 locationId가 있으면 해당 위치 선택
         if (locationId) {
-          const selected = data.find(
-            (loc) => loc.id === Number.parseInt(locationId)
-          );
+          const selected = data.find((loc) => loc.id === locationId);
           if (selected) {
             setSelectedLocation(selected);
+          } else {
+            // ID가 있지만 데이터에서 찾을 수 없는 경우 직접 조회
+            try {
+              const locationData = await getDocument(locationId);
+              if (locationData) {
+                setSelectedLocation(locationData);
+              }
+            } catch (err) {
+              console.error(
+                "위치 정보를 불러오는 중 오류가 발생했습니다:",
+                err
+              );
+            }
           }
         }
 
         setLoading(false);
-
-        // 지도 초기화는 데이터 로드 후에 수행
-        setTimeout(() => {
-          // 약간의 지연을 주어 DOM이 완전히 렌더링된 후 지도 초기화
-          initializeMap(data, locationId ? Number.parseInt(locationId) : null);
-        }, 100);
       } catch (error) {
         console.error("위치 데이터를 불러오는 중 오류가 발생했습니다:", error);
+        showError("데이터 로드 오류", "위치 정보를 불러올 수 없습니다.");
         setLoading(false);
       }
     };
 
     fetchLocations();
-  }, [locationId, mapScriptLoaded]);
+  }, [getCollection, getDocument, locationId, showError]);
 
-  // 지도 초기화 함수
-  const initializeMap = (locationsData, selectedId) => {
-    if (!mapRef.current || !window.kakao || !window.kakao.maps) {
-      console.error("Map initialization failed: Missing required references");
-      return;
+  // 검색어에 따른 필터링
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredLocations(locations);
+    } else {
+      const filtered = locations.filter(
+        (loc) =>
+          loc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          loc.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (loc.detail &&
+            loc.detail.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+      setFilteredLocations(filtered);
     }
+  }, [searchTerm, locations]);
+
+  // 지도 초기화
+  useEffect(() => {
+    if (!mapScriptLoaded || !mapRef.current || filteredLocations.length === 0)
+      return;
 
     try {
-      console.log("Initializing map...");
-
       // 지도 옵션 설정
       const mapOption = {
         center: new window.kakao.maps.LatLng(37.5665, 126.978), // 서울 중심 좌표
@@ -201,7 +136,9 @@ const LocationsMap = () => {
       const bounds = new window.kakao.maps.LatLngBounds();
       markersRef.current = [];
 
-      locationsData.forEach((loc) => {
+      filteredLocations.forEach((loc) => {
+        if (!loc.latitude || !loc.longitude) return;
+
         const position = new window.kakao.maps.LatLng(
           loc.latitude,
           loc.longitude
@@ -216,11 +153,19 @@ const LocationsMap = () => {
 
         // 인포윈도우 생성
         const infoContent = `
-           <div style="padding:12px;width:220px;background-color:#f8fafc;border-radius:6px;box-shadow:0 2px 5px rgba(0,0,0,0.1);">
-    <h3 style="margin-top:0;margin-bottom:8px;font-size:16px;font-weight:bold;color:#1e293b;">${loc.name}</h3>
-    <p style="margin:5px 0;font-size:13px;color:#334155;">${loc.address}</p>
-    <p style="margin:5px 0;font-size:13px;color:#334155;font-weight:500;">자산: <span style="color:#3b82f6;font-weight:600;">${loc.assetCount}개</span></p>
-  </div>
+          <div style="padding:12px;width:220px;background-color:#f8fafc;border-radius:6px;box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+            <h3 style="margin-top:0;margin-bottom:8px;font-size:16px;font-weight:bold;color:#1e293b;">${
+              loc.name
+            }</h3>
+            <p style="margin:5px 0;font-size:13px;color:#334155;">${
+              loc.address
+            }</p>
+            ${
+              loc.detail
+                ? `<p style="margin:5px 0;font-size:13px;color:#334155;">${loc.detail}</p>`
+                : ""
+            }
+          </div>
         `;
 
         const infoWindow = new window.kakao.maps.InfoWindow({
@@ -252,14 +197,14 @@ const LocationsMap = () => {
       });
 
       // 모든 마커가 보이도록 지도 범위 설정
-      if (locationsData.length > 0) {
+      if (filteredLocations.length > 0) {
         map.setBounds(bounds);
       }
 
       // 선택된 위치가 있으면 해당 마커 활성화
-      if (selectedId) {
+      if (selectedLocation) {
         const selectedMarkerInfo = markersRef.current.find(
-          (m) => m.location.id === selectedId
+          (m) => m.location.id === selectedLocation.id
         );
         if (selectedMarkerInfo) {
           const { marker, infoWindow, location } = selectedMarkerInfo;
@@ -274,40 +219,31 @@ const LocationsMap = () => {
           infoWindow.open(map, marker);
         }
       }
-
-      console.log("Map initialized successfully");
     } catch (error) {
-      console.error("Map initialization error:", error);
+      console.error("지도 초기화 오류:", error);
+      showError("지도 오류", "지도를 초기화하는 중 오류가 발생했습니다.");
     }
-  };
+  }, [mapScriptLoaded, filteredLocations, selectedLocation, showError]);
 
   // 위치 선택 시 지도 업데이트
-  useEffect(() => {
-    if (
-      !selectedLocation ||
-      !kakaoMapRef.current ||
-      !window.kakao ||
-      !window.kakao.maps
-    )
-      return;
+  const handleLocationSelect = (loc) => {
+    setSelectedLocation(loc);
+
+    if (!kakaoMapRef.current || !mapScriptLoaded) return;
 
     try {
-      console.log("Updating map for selected location:", selectedLocation.name);
-
       // 선택된 위치로 지도 중심 이동
       const position = new window.kakao.maps.LatLng(
-        selectedLocation.latitude,
-        selectedLocation.longitude
+        loc.latitude,
+        loc.longitude
       );
-
       kakaoMapRef.current.setCenter(position);
       kakaoMapRef.current.setLevel(3); // 더 가깝게 확대
 
       // 해당 마커의 인포윈도우 열기
       const selectedMarkerInfo = markersRef.current.find(
-        (m) => m.location.id === selectedLocation.id
+        (m) => m.location.id === loc.id
       );
-
       if (selectedMarkerInfo) {
         // 이전에 열린 인포윈도우 닫기
         markersRef.current.forEach((m) => {
@@ -323,39 +259,22 @@ const LocationsMap = () => {
         );
       }
     } catch (error) {
-      console.error("Error updating map for selected location:", error);
+      console.error("지도 업데이트 오류:", error);
     }
-  }, [selectedLocation]);
-
-  // 검색 필터링
-  const filteredLocations = locations.filter(
-    (loc) =>
-      loc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      loc.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      loc.manager.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  if (loading) {
-    return (
-      <PageContainer>
-        <PageLoading />
-      </PageContainer>
-    );
-  }
+  };
 
   return (
-    <PageContainer>
+    <PageContainer title="위치 지도">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="text-2xl font-bold">위치 지도</h1>
           <Link
             to="/locations"
-            className={`flex items-center gap-1 px-3 py-2 rounded-md ${getButtonVariantClass(
-              "secondary"
+            className={`inline-flex items-center px-3 py-1.5 rounded-md text-sm ${getButtonVariantClass(
+              "outline"
             )}`}
           >
-            <List className="h-4 w-4" />
-            <span>목록 보기</span>
+            <List className="mr-1.5 h-4 w-4" />
+            목록으로 돌아가기
           </Link>
         </div>
 
@@ -382,7 +301,7 @@ const LocationsMap = () => {
               {filteredLocations.map((loc) => (
                 <button
                   key={loc.id}
-                  onClick={() => setSelectedLocation(loc)}
+                  onClick={() => handleLocationSelect(loc)}
                   className={`block w-full p-3 rounded-md transition-colors text-left ${
                     selectedLocation && selectedLocation.id === loc.id
                       ? "bg-primary/10 border border-primary/30 text-primary"
@@ -398,10 +317,12 @@ const LocationsMap = () => {
                       <p className="text-sm text-muted-foreground mt-1">
                         {loc.address}
                       </p>
+                      {loc.detail && (
+                        <p className="text-xs text-muted-foreground">
+                          {loc.detail}
+                        </p>
+                      )}
                     </div>
-                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                      {loc.assetCount}
-                    </span>
                   </div>
                 </button>
               ))}
@@ -449,25 +370,18 @@ const LocationsMap = () => {
               <div className="mt-4 p-4 rounded-md bg-accent">
                 <h4 className="text-lg font-medium text-foreground mb-2 flex items-center">
                   <MapPin className="h-4 w-4 mr-2 text-primary" />
-                  {selectedLocation.name} 정보
+                  {selectedLocation.name}
                 </h4>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">주소</p>
                     <p className="text-foreground">
                       {selectedLocation.address}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">관리자</p>
-                    <p className="text-foreground">
-                      {selectedLocation.manager}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">자산 수</p>
-                    <p className="text-foreground">
-                      {selectedLocation.assetCount}개
+                      {selectedLocation.detail && (
+                        <span className="block text-sm">
+                          {selectedLocation.detail}
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div>
@@ -477,47 +391,36 @@ const LocationsMap = () => {
                     </p>
                   </div>
                 </div>
+                {selectedLocation.description && (
+                  <div className="mt-2">
+                    <p className="text-sm text-muted-foreground">설명</p>
+                    <p className="text-foreground">
+                      {selectedLocation.description}
+                    </p>
+                  </div>
+                )}
                 <div className="mt-4 flex space-x-2">
                   <Link
                     to={`/assets?location=${selectedLocation.name}`}
                     className={`rounded-md px-3 py-1 text-sm ${getButtonVariantClass(
-                      "primary"
+                      "secondary"
                     )}`}
                   >
+                    <FileText className="h-4 w-4 mr-1.5 inline-block" />
                     자산 보기
                   </Link>
                   <Link
                     to={`/locations/edit/${selectedLocation.id}`}
                     className={`rounded-md px-3 py-1 text-sm ${getButtonVariantClass(
-                      "secondary"
+                      "outline"
                     )}`}
                   >
+                    <Edit className="h-4 w-4 mr-1.5 inline-block" />
                     위치 편집
                   </Link>
                 </div>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* 카카오맵 사용 안내 - API 키가 이미 설정되어 있으므로 안내 메시지 수정 */}
-        <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 p-4 rounded-md flex items-start">
-          <Info className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-          <div>
-            <h4 className="font-medium">카카오맵 API 사용 중</h4>
-            <p className="mt-1 text-sm">
-              현재 카카오맵 API 키가 설정되어 있습니다. 도메인 제한이 있을 수
-              있으니 실제 배포 시에는{" "}
-              <a
-                href="https://developers.kakao.com/console/app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                카카오 개발자 사이트
-              </a>
-              에서 도메인 설정을 확인해주세요.
-            </p>
           </div>
         </div>
       </div>

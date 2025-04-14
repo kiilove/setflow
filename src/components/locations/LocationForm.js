@@ -2,192 +2,285 @@
 
 import { useState, useEffect, useRef } from "react";
 import { getButtonVariantClass } from "../../utils/themeUtils";
-import {
-  Save,
-  X,
-  MapPin,
-  Building,
-  Phone,
-  Mail,
-  Info,
-  Search,
-} from "lucide-react";
+import { Save, X, MapPin, Building, Search } from "lucide-react";
+import DaumPostcode from "react-daum-postcode";
 
-const LocationForm = ({ location, onSubmit, onCancel, isEditing = false }) => {
+const LocationForm = ({
+  initialValues,
+  onSubmit,
+  onCancel,
+  isEditing = false,
+}) => {
   const [formData, setFormData] = useState({
     name: "",
     address: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    country: "대한민국",
-    manager: "",
-    phone: "",
-    email: "",
+    detail: "",
     description: "",
-    latitude: "",
-    longitude: "",
-    ...location,
+    ...initialValues,
   });
 
   const [errors, setErrors] = useState({});
+  const [showPostcode, setShowPostcode] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [searchingAddress, setSearchingAddress] = useState(false);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [kakaoReady, setKakaoReady] = useState(false);
   const mapRef = useRef(null);
   const kakaoMapRef = useRef(null);
   const markerRef = useRef(null);
+  const checkIntervalRef = useRef(null);
 
   // 카카오맵 스크립트 로드
   useEffect(() => {
-    const script = document.createElement("script");
-    script.async = true;
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=0ad5b2c2799249be175ae1d00bfc1173&libraries=services&autoload=false`;
-    document.head.appendChild(script);
+    // 이미 로드된 스크립트가 있는지 확인
+    const existingScript = document.getElementById("kakao-maps-sdk");
 
-    script.onload = () => {
-      window.kakao.maps.load(() => {
-        setMapLoaded(true);
-        initializeMap();
-      });
+    // 스크립트 로드 함수
+    const loadKakaoScript = () => {
+      const script = document.createElement("script");
+      script.id = "kakao-maps-sdk";
+      script.async = true;
+      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=0ad5b2c2799249be175ae1d00bfc1173&libraries=services&autoload=false`;
+      document.head.appendChild(script);
+
+      script.onload = () => {
+        console.log("Kakao Maps SDK script loaded");
+        setScriptLoaded(true);
+
+        // 스크립트가 로드된 후 kakao.maps.load 호출
+        if (window.kakao) {
+          window.kakao.maps.load(() => {
+            console.log("Kakao Maps API initialized");
+            setKakaoReady(true);
+            setMapLoaded(true);
+          });
+        }
+      };
+
+      script.onerror = (e) => {
+        console.error("Error loading Kakao Maps SDK:", e);
+      };
     };
 
+    if (existingScript) {
+      setScriptLoaded(true);
+
+      // 이미 kakao 객체가 초기화되었는지 확인
+      if (window.kakao && window.kakao.maps) {
+        console.log("Kakao Maps SDK already loaded");
+        setKakaoReady(true);
+        setMapLoaded(true);
+      } else if (window.kakao) {
+        // kakao 객체는 있지만 maps가 초기화되지 않은 경우
+        window.kakao.maps.load(() => {
+          console.log("Kakao Maps API initialized");
+          setKakaoReady(true);
+          setMapLoaded(true);
+        });
+      } else {
+        // 스크립트는 있지만 kakao 객체가 없는 경우 - 일정 시간 후 다시 확인
+        const checkKakaoInterval = setInterval(() => {
+          if (window.kakao) {
+            clearInterval(checkKakaoInterval);
+
+            if (window.kakao.maps) {
+              setKakaoReady(true);
+              setMapLoaded(true);
+            } else {
+              window.kakao.maps.load(() => {
+                console.log("Kakao Maps API initialized after interval check");
+                setKakaoReady(true);
+                setMapLoaded(true);
+              });
+            }
+          }
+        }, 500);
+
+        // 10초 후에도 로드되지 않으면 인터벌 정리
+        setTimeout(() => {
+          clearInterval(checkKakaoInterval);
+          if (!kakaoReady) {
+            console.error("Failed to load Kakao Maps after 10 seconds");
+            // 스크립트 다시 로드 시도
+            loadKakaoScript();
+          }
+        }, 10000);
+
+        checkIntervalRef.current = checkKakaoInterval;
+      }
+    } else {
+      // 스크립트가 없으면 로드
+      loadKakaoScript();
+    }
+
     return () => {
-      if (document.head.contains(script)) {
-        document.head.removeChild(script);
+      // 컴포넌트 언마운트 시 인터벌 정리
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
       }
     };
   }, []);
 
-  // 지도 초기화
-  const initializeMap = () => {
-    if (!mapRef.current || !mapLoaded || !window.kakao || !window.kakao.maps)
-      return;
+  // 지도 초기화 - kakaoReady 상태가 true일 때만 실행
+  useEffect(() => {
+    if (!kakaoReady || !mapRef.current) return;
 
-    // 초기 좌표 설정 (기본값 또는 저장된 값)
-    const lat = formData.latitude
-      ? Number.parseFloat(formData.latitude)
-      : 37.5665;
-    const lng = formData.longitude
-      ? Number.parseFloat(formData.longitude)
-      : 126.978;
+    console.log("Initializing map with Kakao Maps API");
 
-    const mapOption = {
-      center: new window.kakao.maps.LatLng(lat, lng),
-      level: 3,
-    };
+    try {
+      const mapOption = {
+        center: new window.kakao.maps.LatLng(37.5665, 126.978), // 서울 중심 좌표
+        level: 3,
+      };
 
-    // 지도 생성
-    const map = new window.kakao.maps.Map(mapRef.current, mapOption);
-    kakaoMapRef.current = map;
+      const map = new window.kakao.maps.Map(mapRef.current, mapOption);
+      kakaoMapRef.current = map;
 
-    // 지도 컨트롤 추가
-    const zoomControl = new window.kakao.maps.ZoomControl();
-    map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
+      // 기존 위치 정보가 있으면 주소 검색으로 마커 표시
+      if (formData.address) {
+        searchAddressCoordinates(formData.address);
+      }
 
-    // 마커 생성
-    const marker = new window.kakao.maps.Marker({
-      position: new window.kakao.maps.LatLng(lat, lng),
-      map: map,
-      draggable: true, // 마커 드래그 가능
-    });
-    markerRef.current = marker;
+      // 지도 클릭 이벤트 등록
+      window.kakao.maps.event.addListener(map, "click", (mouseEvent) => {
+        // 클릭한 위치의 좌표 정보 가져오기
+        const latlng = mouseEvent.latLng;
 
-    // 마커 드래그 이벤트
-    window.kakao.maps.event.addListener(marker, "dragend", () => {
-      const position = marker.getPosition();
-      setFormData((prev) => ({
-        ...prev,
-        latitude: position.getLat().toFixed(6),
-        longitude: position.getLng().toFixed(6),
-      }));
-    });
+        // 기존 마커 제거
+        if (markerRef.current) {
+          markerRef.current.setMap(null);
+        }
 
-    // 지도 클릭 이벤트
-    window.kakao.maps.event.addListener(map, "click", (mouseEvent) => {
-      const position = mouseEvent.latLng;
-
-      // 마커 위치 변경
-      marker.setPosition(position);
-
-      // 폼 데이터 업데이트
-      setFormData((prev) => ({
-        ...prev,
-        latitude: position.getLat().toFixed(6),
-        longitude: position.getLng().toFixed(6),
-      }));
-    });
-  };
-
-  // 주소 검색 기능
-  const searchAddress = () => {
-    if (!mapLoaded || !formData.address || !window.kakao || !window.kakao.maps)
-      return;
-
-    setSearchingAddress(true);
-
-    // 주소-좌표 변환 객체 생성
-    const geocoder = new window.kakao.maps.services.Geocoder();
-
-    // 주소로 좌표 검색
-    geocoder.addressSearch(formData.address, (result, status) => {
-      setSearchingAddress(false);
-
-      // 정상적으로 검색이 완료됐으면
-      if (status === window.kakao.maps.services.Status.OK) {
-        const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
-
-        // 지도 중심을 이동
-        kakaoMapRef.current.setCenter(coords);
-
-        // 마커 위치 변경
-        markerRef.current.setPosition(coords);
+        // 새 마커 생성
+        const marker = new window.kakao.maps.Marker({
+          position: latlng,
+          map: map,
+        });
+        markerRef.current = marker;
 
         // 폼 데이터 업데이트
         setFormData((prev) => ({
           ...prev,
-          latitude: result[0].y,
-          longitude: result[0].x,
-          // 행정구역 정보 업데이트
-          city: result[0].address?.region_2depth_name || prev.city,
-          state: result[0].address?.region_1depth_name || prev.state,
+          latitude: latlng.getLat(),
+          longitude: latlng.getLng(),
         }));
-      } else {
-        alert("주소를 찾을 수 없습니다. 다른 주소를 입력해보세요.");
-      }
-    });
+
+        // 좌표로 주소 검색
+        const geocoder = new window.kakao.maps.services.Geocoder();
+        geocoder.coord2Address(
+          latlng.getLng(),
+          latlng.getLat(),
+          (result, status) => {
+            if (status === window.kakao.maps.services.Status.OK) {
+              if (result[0].road_address) {
+                setFormData((prev) => ({
+                  ...prev,
+                  address: result[0].road_address.address_name,
+                }));
+              } else if (result[0].address) {
+                setFormData((prev) => ({
+                  ...prev,
+                  address: result[0].address.address_name,
+                }));
+              }
+            }
+          }
+        );
+      });
+
+      // 지도 컨트롤 추가
+      const zoomControl = new window.kakao.maps.ZoomControl();
+      map.addControl(zoomControl, window.kakao.maps.ControlPosition.RIGHT);
+    } catch (error) {
+      console.error("Map initialization error:", error);
+    }
+  }, [kakaoReady, formData.address]);
+
+  // 주소 검색 완료 핸들러
+  const handleComplete = (data) => {
+    const fullAddress = data.address;
+    setFormData((prev) => ({
+      ...prev,
+      address: fullAddress,
+    }));
+    setShowPostcode(false);
+
+    if (kakaoReady) {
+      searchAddressCoordinates(fullAddress);
+    }
   };
 
-  // 좌표 변경 시 지도 업데이트
-  useEffect(() => {
-    if (
-      mapLoaded &&
-      kakaoMapRef.current &&
-      markerRef.current &&
-      formData.latitude &&
-      formData.longitude &&
-      window.kakao
-    ) {
-      try {
-        const position = new window.kakao.maps.LatLng(
-          Number.parseFloat(formData.latitude),
-          Number.parseFloat(formData.longitude)
-        );
-
-        kakaoMapRef.current.setCenter(position);
-        markerRef.current.setPosition(position);
-      } catch (error) {
-        console.error("지도 업데이트 중 오류 발생:", error);
-      }
+  // 주소로 좌표 검색 및 마커 표시
+  const searchAddressCoordinates = (address) => {
+    if (!kakaoReady || !address || !kakaoMapRef.current) {
+      console.log("Cannot search address: map not ready or address empty");
+      return;
     }
-  }, [formData.latitude, formData.longitude, mapLoaded]);
+
+    console.log("Searching address:", address);
+
+    try {
+      // 주소-좌표 변환 객체 생성
+      const geocoder = new window.kakao.maps.services.Geocoder();
+
+      // 주소로 좌표 검색
+      geocoder.addressSearch(address, (result, status) => {
+        if (status === window.kakao.maps.services.Status.OK) {
+          console.log("Address search result:", result);
+
+          // 폼 데이터 업데이트
+          setFormData((prev) => ({
+            ...prev,
+            latitude: result[0].y,
+            longitude: result[0].x,
+          }));
+
+          // 지도에 마커 표시
+          const position = new window.kakao.maps.LatLng(
+            result[0].y,
+            result[0].x
+          );
+
+          // 기존 마커 제거
+          if (markerRef.current) {
+            markerRef.current.setMap(null);
+          }
+
+          // 새 마커 생성
+          const marker = new window.kakao.maps.Marker({
+            position: position,
+            map: kakaoMapRef.current,
+          });
+          markerRef.current = marker;
+
+          // 인포윈도우로 장소에 대한 설명 표시
+          const infowindow = new window.kakao.maps.InfoWindow({
+            content: `<div style="padding:5px;width:150px;text-align:center;">${
+              formData.name || address
+            }</div>`,
+          });
+          infowindow.open(kakaoMapRef.current, marker);
+
+          // 지도 중심 이동
+          kakaoMapRef.current.setCenter(position);
+        } else {
+          console.error("Address search failed:", status);
+          alert("주소를 찾을 수 없습니다. 다른 주소를 입력해보세요.");
+        }
+      });
+    } catch (error) {
+      console.error("Error during address search:", error);
+      alert("주소 검색 중 오류가 발생했습니다.");
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
+    setFormData({
+      ...formData,
       [name]: value,
-    }));
+    });
 
+    // 입력 시 해당 필드의 에러 메시지 제거
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
     }
@@ -196,8 +289,12 @@ const LocationForm = ({ location, onSubmit, onCancel, isEditing = false }) => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) newErrors.name = "위치명을 입력해주세요.";
-    if (!formData.address.trim()) newErrors.address = "주소를 입력해주세요.";
+    if (!formData.name.trim()) {
+      newErrors.name = "위치명을 입력해주세요";
+    }
+    if (!formData.address.trim()) {
+      newErrors.address = "주소를 입력해주세요";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -218,45 +315,53 @@ const LocationForm = ({ location, onSubmit, onCancel, isEditing = false }) => {
         <div className="flex items-center mb-4 pb-2 border-b border-border">
           <h3 className="text-lg font-semibold text-foreground">기본 정보</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <div className="space-y-2">
-            <label htmlFor="name" className="block text-sm font-medium mb-1">
-              <span className="flex items-center">
-                <MapPin className="mr-1 text-primary h-4 w-4" />
-                위치명 <span className="text-destructive">*</span>
-              </span>
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-foreground"
+            >
+              위치명 <span className="text-destructive">*</span>
             </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              required
-              value={formData.name}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md ${
-                errors.name ? "border-destructive" : "border-input"
-              } bg-background focus:outline-none focus:ring-2 focus:ring-primary`}
-            />
+            <div className="relative">
+              <input
+                type="text"
+                id="name"
+                name="name"
+                required
+                value={formData.name}
+                onChange={handleChange}
+                className={`w-full rounded-md border ${
+                  errors.name ? "border-destructive" : "border-input"
+                } bg-background px-4 py-2 pl-10 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors`}
+              />
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Building className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
             {errors.name && (
-              <p className="mt-1 text-sm text-destructive">{errors.name}</p>
+              <p className="text-xs text-destructive">{errors.name}</p>
             )}
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="manager" className="block text-sm font-medium mb-1">
-              <span className="flex items-center">
-                <Building className="mr-1 text-primary h-4 w-4" />
-                관리자
-              </span>
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-foreground"
+            >
+              설명
             </label>
-            <input
-              type="text"
-              id="manager"
-              name="manager"
-              value={formData.manager}
+            <textarea
+              id="description"
+              name="description"
+              rows={3}
+              value={formData.description}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
             />
+            <p className="text-xs text-muted-foreground">
+              위치에 대한 간략한 설명을 입력하세요.
+            </p>
           </div>
         </div>
       </div>
@@ -268,258 +373,136 @@ const LocationForm = ({ location, onSubmit, onCancel, isEditing = false }) => {
         </div>
         <div className="grid grid-cols-1 gap-4">
           <div className="space-y-2">
-            <label htmlFor="address" className="block text-sm font-medium mb-1">
-              <span className="flex items-center">
-                <MapPin className="mr-1 text-primary h-4 w-4" />
-                주소 <span className="text-destructive">*</span>
-              </span>
+            <label
+              htmlFor="address"
+              className="block text-sm font-medium text-foreground"
+            >
+              주소 <span className="text-destructive">*</span>
             </label>
             <div className="flex gap-2">
-              <input
-                type="text"
-                id="address"
-                name="address"
-                required
-                value={formData.address}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  errors.address ? "border-destructive" : "border-input"
-                } bg-background focus:outline-none focus:ring-2 focus:ring-primary`}
-              />
+              <div className="relative flex-grow">
+                <input
+                  type="text"
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className={`w-full rounded-md border ${
+                    errors.address ? "border-destructive" : "border-input"
+                  } bg-background px-4 py-2 pl-10 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors`}
+                  placeholder="주소 검색 버튼을 클릭하여 주소를 입력하세요"
+                  readOnly
+                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
               <button
                 type="button"
-                onClick={searchAddress}
-                disabled={!mapLoaded || !formData.address || searchingAddress}
+                onClick={() => setShowPostcode(true)}
                 className={`px-3 py-2 rounded-md ${getButtonVariantClass(
                   "secondary"
-                )} flex items-center`}
+                )} flex items-center whitespace-nowrap`}
               >
-                {searchingAddress ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
-                    검색 중...
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4 mr-1" />
-                    주소 검색
-                  </>
-                )}
+                <Search className="h-4 w-4 mr-1" />
+                주소 검색
               </button>
             </div>
             {errors.address && (
-              <p className="mt-1 text-sm text-destructive">{errors.address}</p>
+              <p className="text-xs text-destructive">{errors.address}</p>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="city" className="block text-sm font-medium mb-1">
-                시/군/구
-              </label>
-              <input
-                type="text"
-                id="city"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-md border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
+          <div className="space-y-2">
+            <label
+              htmlFor="detail"
+              className="block text-sm font-medium text-foreground"
+            >
+              상세 주소
+            </label>
+            <input
+              type="text"
+              id="detail"
+              name="detail"
+              value={formData.detail}
+              onChange={handleChange}
+              className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+            />
+          </div>
 
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground">
+              지도에서 위치 선택 <span className="text-destructive">*</span>
+            </label>
+            <div
+              ref={mapRef}
+              className="w-full h-[300px] rounded-md border border-input"
+              style={{ display: kakaoReady ? "block" : "none" }}
+            ></div>
+            {!kakaoReady && (
+              <div className="w-full h-[300px] rounded-md border border-input bg-muted flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                  <p className="text-muted-foreground">지도를 불러오는 중...</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {scriptLoaded
+                      ? "카카오맵 API 초기화 중..."
+                      : "카카오맵 스크립트 로딩 중..."}
+                  </p>
+                </div>
+              </div>
+            )}
+            {errors.map && (
+              <p className="text-xs text-destructive">{errors.map}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              지도를 클릭하여 정확한 위치를 지정하세요.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="state" className="block text-sm font-medium mb-1">
-                시/도
+              <label
+                htmlFor="latitude"
+                className="block text-sm font-medium text-muted-foreground"
+              >
+                위도
               </label>
               <input
                 type="text"
-                id="state"
-                name="state"
-                value={formData.state}
+                id="latitude"
+                name="latitude"
+                value={formData.latitude}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-md border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                readOnly
+                className="w-full px-3 py-2 border rounded-md border-input bg-muted text-muted-foreground focus:outline-none"
               />
+              <p className="text-xs text-muted-foreground">
+                주소 검색 시 자동으로 입력됩니다
+              </p>
             </div>
 
             <div className="space-y-2">
               <label
-                htmlFor="zipCode"
-                className="block text-sm font-medium mb-1"
+                htmlFor="longitude"
+                className="block text-sm font-medium text-muted-foreground"
               >
-                우편번호
+                경도
               </label>
               <input
                 type="text"
-                id="zipCode"
-                name="zipCode"
-                value={formData.zipCode}
+                id="longitude"
+                name="longitude"
+                value={formData.longitude}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-md border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                readOnly
+                className="w-full px-3 py-2 border rounded-md border-input bg-muted text-muted-foreground focus:outline-none"
               />
+              <p className="text-xs text-muted-foreground">
+                주소 검색 시 자동으로 입력됩니다
+              </p>
             </div>
           </div>
-
-          <div className="space-y-2">
-            <label htmlFor="country" className="block text-sm font-medium mb-1">
-              국가
-            </label>
-            <input
-              type="text"
-              id="country"
-              name="country"
-              value={formData.country}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* 연락처 정보 */}
-      <div>
-        <div className="flex items-center mb-4 pb-2 border-b border-border">
-          <h3 className="text-lg font-semibold text-foreground">연락처 정보</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label htmlFor="phone" className="block text-sm font-medium mb-1">
-              <span className="flex items-center">
-                <Phone className="mr-1 text-primary h-4 w-4" />
-                전화번호
-              </span>
-            </label>
-            <input
-              type="text"
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-medium mb-1">
-              <span className="flex items-center">
-                <Mail className="mr-1 text-primary h-4 w-4" />
-                이메일
-              </span>
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* 지도 정보 */}
-      <div>
-        <div className="flex items-center mb-4 pb-2 border-b border-border">
-          <h3 className="text-lg font-semibold text-foreground">지도 정보</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label
-              htmlFor="latitude"
-              className="block text-sm font-medium mb-1"
-            >
-              위도
-            </label>
-            <input
-              type="text"
-              id="latitude"
-              name="latitude"
-              value={formData.latitude}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label
-              htmlFor="longitude"
-              className="block text-sm font-medium mb-1"
-            >
-              경도
-            </label>
-            <input
-              type="text"
-              id="longitude"
-              name="longitude"
-              value={formData.longitude}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-md border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <div
-            ref={mapRef}
-            className="w-full h-64 bg-muted rounded-md flex items-center justify-center"
-          >
-            {!mapLoaded ? (
-              <div className="text-center">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                <p className="text-muted-foreground">지도를 불러오는 중...</p>
-              </div>
-            ) : null}
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            지도를 클릭하거나 마커를 드래그하여 정확한 위치를 지정하세요.
-          </p>
-        </div>
-      </div>
-
-      {/* 추가 정보 */}
-      <div>
-        <div className="flex items-center mb-4 pb-2 border-b border-border">
-          <h3 className="text-lg font-semibold text-foreground">추가 정보</h3>
-        </div>
-        <div className="space-y-2">
-          <label
-            htmlFor="description"
-            className="block text-sm font-medium mb-1"
-          >
-            <span className="flex items-center">
-              <Info className="mr-1 text-primary h-4 w-4" />
-              설명
-            </span>
-          </label>
-          <textarea
-            id="description"
-            name="description"
-            rows={3}
-            value={formData.description}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border rounded-md border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-      </div>
-
-      {/* 카카오맵 API 키 안내 */}
-      <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 p-4 rounded-md flex items-start">
-        <Info className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-        <div>
-          <h4 className="font-medium">카카오맵 API 사용 중</h4>
-          <p className="mt-1 text-sm">
-            현재 카카오맵 API 키가 설정되어 있습니다. 도메인 제한이 있을 수
-            있으니 실제 배포 시에는{" "}
-            <a
-              href="https://developers.kakao.com/console/app"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              카카오 개발자 사이트
-            </a>
-            에서 도메인 설정을 확인해주세요.
-          </p>
         </div>
       </div>
 
@@ -545,6 +528,29 @@ const LocationForm = ({ location, onSubmit, onCancel, isEditing = false }) => {
           {isEditing ? "수정 완료" : "저장"}
         </button>
       </div>
+
+      {/* 다음 주소 검색 모달 */}
+      {showPostcode && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg shadow-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">주소 검색</h3>
+              <button
+                type="button"
+                onClick={() => setShowPostcode(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <DaumPostcode
+              onComplete={handleComplete}
+              style={{ height: 400 }}
+              autoClose={false}
+            />
+          </div>
+        </div>
+      )}
     </form>
   );
 };

@@ -1,589 +1,257 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { dataService } from "../../data/mockData";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Plus, History } from "lucide-react";
 import { getStatusColorClass } from "../../utils/themeUtils";
-import PageContainer from "../../components/common/PageContainer";
+import AssetCard from "./components/AssetCard";
+import useEntityData from "../../hooks/useEntityData";
+import ListPageTemplate from "../../components/common/ListPageTemplate";
 
 const Assets = () => {
-  const [assets, setAssets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
   const [filterCategory, setFilterCategory] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [sortBy, setSortBy] = useState("name");
-  const [sortOrder, setSortOrder] = useState("asc");
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchAssets = async () => {
-      try {
-        const data = await dataService.getAssets();
-        setAssets(data);
-      } catch (error) {
-        console.error("자산 데이터를 불러오는 중 오류가 발생했습니다:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAssets();
-  }, []);
+  // 엔티티 데이터 관리 훅 사용
+  const {
+    data: assets,
+    loading,
+    setLoading,
+    fetchData,
+    deleteItem: deleteAsset,
+    deleteMultipleItems: deleteMultipleAssets,
+  } = useEntityData("assets");
 
   // 카테고리 목록 추출
-  const categories = [...new Set(assets.map((asset) => asset.category))];
+  const categories = [
+    ...new Set(assets.map((asset) => asset.category).filter(Boolean)),
+  ];
 
   // 상태 목록 추출
-  const statuses = [...new Set(assets.map((asset) => asset.status))];
+  const statuses = [
+    ...new Set(assets.map((asset) => asset.status).filter(Boolean)),
+  ];
 
-  // 검색 및 필터링된 자산 목록
-  const filteredAssets = assets.filter((asset) => {
-    const matchesSearch =
-      asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset.assignedTo.toLowerCase().includes(searchTerm.toLowerCase());
+  // 검색 필터 함수
+  const searchFilter = (asset, searchTerm) => {
+    return (
+      asset.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      asset.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      asset.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      asset.assignedTo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      asset.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
 
+  // 추가 필터 함수
+  const additionalFilter = (asset) => {
     const matchesCategory = filterCategory
       ? asset.category === filterCategory
       : true;
     const matchesStatus = filterStatus ? asset.status === filterStatus : true;
+    return matchesCategory && matchesStatus;
+  };
 
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
-
-  // 정렬
-  const sortedAssets = [...filteredAssets].sort((a, b) => {
+  // 정렬 함수
+  const sortFunction = (a, b, sortBy, sortOrder) => {
     let comparison = 0;
 
     if (sortBy === "name") {
-      comparison = a.name.localeCompare(b.name);
+      comparison = (a.name || "").localeCompare(b.name || "");
     } else if (sortBy === "category") {
-      comparison = a.category.localeCompare(b.category);
+      comparison = (a.category || "").localeCompare(b.category || "");
     } else if (sortBy === "status") {
-      comparison = a.status.localeCompare(b.status);
+      comparison = (a.status || "").localeCompare(b.status || "");
     } else if (sortBy === "location") {
-      comparison = a.location.localeCompare(b.location);
+      comparison = (a.location || "").localeCompare(b.location || "");
     } else if (sortBy === "assignedTo") {
-      comparison = a.assignedTo.localeCompare(b.assignedTo);
+      comparison = (a.assignedTo || "").localeCompare(b.assignedTo || "");
     } else if (sortBy === "purchaseDate") {
-      comparison = new Date(a.purchaseDate) - new Date(b.purchaseDate);
+      const dateA = a.purchaseDate ? new Date(a.purchaseDate) : new Date(0);
+      const dateB = b.purchaseDate ? new Date(b.purchaseDate) : new Date(0);
+      comparison = dateA - dateB;
     } else if (sortBy === "purchasePrice") {
-      comparison = a.purchasePrice - b.purchasePrice;
+      const priceA = a.purchasePrice || 0;
+      const priceB = b.purchasePrice || 0;
+      comparison = priceA - priceB;
     }
 
     return sortOrder === "asc" ? comparison : -comparison;
-  });
+  };
 
-  const handleSort = (column) => {
-    if (sortBy === column) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(column);
-      setSortOrder("asc");
+  // 필터 변경 핸들러
+  const handleFilterChange = (filterId, value) => {
+    if (filterId === "category") {
+      setFilterCategory(value);
+    } else if (filterId === "status") {
+      setFilterStatus(value);
     }
   };
 
+  // 필터 초기화 핸들러
+  const handleResetFilters = () => {
+    setFilterCategory("");
+    setFilterStatus("");
+  };
+
+  // 통화 포맷팅
   const formatCurrency = (value) => {
+    if (!value && value !== 0) return "-";
     return new Intl.NumberFormat("ko-KR", {
       style: "currency",
       currency: "KRW",
     }).format(value);
   };
 
-  const handleRowClick = (assetId) => {
-    navigate(`/assets/detail/${assetId}`);
+  // 날짜 포맷팅
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleDateString();
   };
 
-  if (loading) {
-    return (
-      <PageContainer>
-        <div className="flex justify-center items-center h-64">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <span className="ml-2 text-muted-foreground">로딩 중...</span>
-        </div>
-      </PageContainer>
-    );
-  }
+  // 테이블 컬럼 정의
+  const columns = [
+    {
+      id: "name",
+      header: "자산명",
+      accessor: (asset) => asset.name || "-",
+      sortable: true,
+    },
+    {
+      id: "category",
+      header: "카테고리",
+      accessor: (asset) => asset.category || "-",
+      sortable: true,
+    },
+    {
+      id: "status",
+      header: "상태",
+      sortable: true,
+      render: (asset) => (
+        <span
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColorClass(
+            asset.status || "미지정"
+          )}`}
+        >
+          {asset.status || "미지정"}
+        </span>
+      ),
+    },
+    {
+      id: "location",
+      header: "위치",
+      accessor: (asset) => asset.location || "-",
+      sortable: true,
+    },
+    {
+      id: "assignedTo",
+      header: "담당자",
+      accessor: (asset) => asset.assignedTo || "-",
+      sortable: true,
+    },
+    {
+      id: "purchaseDate",
+      header: "구매일",
+      accessor: (asset) => formatDate(asset.purchaseDate),
+      sortable: true,
+    },
+    {
+      id: "purchasePrice",
+      header: "구매가",
+      accessor: (asset) => formatCurrency(asset.purchasePrice),
+      sortable: true,
+    },
+  ];
+
+  // 필터 정의
+  const filterOptions = [
+    {
+      id: "category",
+      label: "카테고리",
+      value: filterCategory,
+      options: categories.map((category) => ({
+        label: category,
+        value: category,
+      })),
+    },
+    {
+      id: "status",
+      label: "상태",
+      value: filterStatus,
+      options: statuses.map((status) => ({ label: status, value: status })),
+    },
+  ];
+
+  // 헤더 액션 정의
+  const headerActions = [
+    {
+      icon: Plus,
+      label: "자산 추가",
+      to: "/assets/add",
+      variant: "primary",
+    },
+    {
+      icon: History,
+      label: "자산 이력",
+      to: "/assets/history",
+      variant: "secondary",
+    },
+  ];
+
+  // 자산 상세 페이지로 이동
+  const handleAssetClick = (asset) => {
+    navigate(`/assets/detail/${asset.id}`);
+  };
 
   return (
-    <PageContainer>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="text-2xl font-bold">자산 관리</h1>
-          <div className="flex gap-2">
-            <Link
-              to="/assets/add"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md transition-colors flex items-center"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-1"
-              >
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              자산 추가
-            </Link>
-            <Link
-              to="/assets/history"
-              className="bg-muted hover:bg-muted/80 text-muted-foreground px-4 py-2 rounded-md transition-colors flex items-center"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="mr-1"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-              자산 이력
-            </Link>
-          </div>
-        </div>
-
-        {/* 검색 및 필터 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="col-span-1 md:col-span-2">
-            <div className="relative">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
-              <input
-                type="text"
-                placeholder="자산명, 카테고리, 위치 또는 담당자 검색..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              />
-            </div>
-          </div>
-          <div>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full px-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="">모든 카테고리</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            >
-              <option value="">모든 상태</option>
-              {statuses.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* 자산 목록 */}
-        <div className="bg-card rounded-lg shadow overflow-hidden border border-border">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-muted">
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort("name")}
-                  >
-                    <div className="flex items-center">
-                      자산명
-                      {sortBy === "name" && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="ml-1"
-                        >
-                          {sortOrder === "asc" ? (
-                            <path d="m18 15-6-6-6 6" />
-                          ) : (
-                            <path d="m6 9 6 6 6-6" />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort("category")}
-                  >
-                    <div className="flex items-center">
-                      카테고리
-                      {sortBy === "category" && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="ml-1"
-                        >
-                          {sortOrder === "asc" ? (
-                            <path d="m18 15-6-6-6 6" />
-                          ) : (
-                            <path d="m6 9 6 6 6-6" />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort("status")}
-                  >
-                    <div className="flex items-center">
-                      상태
-                      {sortBy === "status" && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="ml-1"
-                        >
-                          {sortOrder === "asc" ? (
-                            <path d="m18 15-6-6-6 6" />
-                          ) : (
-                            <path d="m6 9 6 6 6-6" />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort("location")}
-                  >
-                    <div className="flex items-center">
-                      위치
-                      {sortBy === "location" && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="ml-1"
-                        >
-                          {sortOrder === "asc" ? (
-                            <path d="m18 15-6-6-6 6" />
-                          ) : (
-                            <path d="m6 9 6 6 6-6" />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort("assignedTo")}
-                  >
-                    <div className="flex items-center">
-                      담당자
-                      {sortBy === "assignedTo" && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="ml-1"
-                        >
-                          {sortOrder === "asc" ? (
-                            <path d="m18 15-6-6-6 6" />
-                          ) : (
-                            <path d="m6 9 6 6 6-6" />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort("purchaseDate")}
-                  >
-                    <div className="flex items-center">
-                      구매일
-                      {sortBy === "purchaseDate" && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="ml-1"
-                        >
-                          {sortOrder === "asc" ? (
-                            <path d="m18 15-6-6-6 6" />
-                          ) : (
-                            <path d="m6 9 6 6 6-6" />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th
-                    className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort("purchasePrice")}
-                  >
-                    <div className="flex items-center">
-                      구매가
-                      {sortBy === "purchasePrice" && (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="ml-1"
-                        >
-                          {sortOrder === "asc" ? (
-                            <path d="m18 15-6-6-6 6" />
-                          ) : (
-                            <path d="m6 9 6 6 6-6" />
-                          )}
-                        </svg>
-                      )}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    작업
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {sortedAssets.map((asset) => (
-                  <tr
-                    key={asset.id}
-                    className="hover:bg-muted/50 transition-colors cursor-pointer"
-                    onClick={() => handleRowClick(asset.id)}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {asset.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {asset.category}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColorClass(
-                          asset.status
-                        )}`}
-                      >
-                        {asset.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {asset.location}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {asset.assignedTo}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {new Date(asset.purchaseDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {formatCurrency(asset.purchasePrice)}
-                    </td>
-                    <td
-                      className="px-6 py-4 whitespace-nowrap text-sm"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex space-x-2">
-                        <Link
-                          to={`/assets/edit/${asset.id}`}
-                          className="text-primary hover:text-primary/80 transition-colors"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                            <path d="m15 5 4 4" />
-                          </svg>
-                        </Link>
-                        <button
-                          className="text-destructive hover:text-destructive/80 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // 삭제 확인 로직 추가
-                            if (
-                              window.confirm(
-                                `${asset.name} 자산을 삭제하시겠습니까?`
-                              )
-                            ) {
-                              console.log(`자산 삭제: ${asset.id}`);
-                              // 실제 삭제 로직 구현
-                            }
-                          }}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="18"
-                            height="18"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M3 6h18" />
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                            <line x1="10" x2="10" y1="11" y2="17" />
-                            <line x1="14" x2="14" y1="11" y2="17" />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {sortedAssets.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan="8"
-                      className="px-6 py-8 text-sm text-center text-muted-foreground"
-                    >
-                      {loading ? (
-                        <div className="flex justify-center items-center">
-                          <div className="w-6 h-6 border-4 border-primary border-t-transparent rounded-full animate-spin mr-2"></div>
-                          자산 데이터를 불러오는 중...
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="40"
-                            height="40"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="mb-2 text-muted-foreground/60"
-                          >
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" x2="12" y1="8" y2="12" />
-                            <line x1="12" x2="12.01" y1="16" y2="16" />
-                          </svg>
-                          검색 결과가 없습니다.
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* 페이지네이션 (필요시 추가) */}
-        {sortedAssets.length > 0 && (
-          <div className="flex justify-between items-center mt-4">
-            <div className="text-sm text-muted-foreground">
-              총 {sortedAssets.length}개의 자산
-            </div>
-            <div className="flex space-x-1">
-              <button className="px-3 py-1 rounded border border-input bg-background hover:bg-muted transition-colors disabled:opacity-50">
-                이전
-              </button>
-              <button className="px-3 py-1 rounded border border-input bg-primary text-primary-foreground">
-                1
-              </button>
-              <button className="px-3 py-1 rounded border border-input bg-background hover:bg-muted transition-colors">
-                2
-              </button>
-              <button className="px-3 py-1 rounded border border-input bg-background hover:bg-muted transition-colors">
-                3
-              </button>
-              <button className="px-3 py-1 rounded border border-input bg-background hover:bg-muted transition-colors">
-                다음
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </PageContainer>
+    <ListPageTemplate
+      // 기본 설정
+      title="자산 관리"
+      entityName="자산"
+      // 데이터 관련
+      data={assets}
+      loading={loading}
+      setLoading={setLoading}
+      fetchData={fetchData}
+      // 테이블/그리드 설정
+      columns={columns}
+      renderGridItem={(asset) => (
+        <AssetCard
+          key={asset.id}
+          asset={asset}
+          onClick={() => navigate(`/assets/detail/${asset.id}`)}
+          onDelete={(e) => {
+            e.stopPropagation();
+            deleteAsset(asset.id, asset.name);
+          }}
+          isSelected={false}
+          onSelect={() => {}}
+          formatCurrency={formatCurrency}
+          formatDate={formatDate}
+        />
+      )}
+      // 필터 관련
+      filterOptions={filterOptions}
+      onFilterChange={handleFilterChange}
+      onResetFilters={handleResetFilters}
+      searchFilter={searchFilter}
+      additionalFilter={additionalFilter}
+      // 정렬 관련
+      sortFunction={sortFunction}
+      defaultSortBy="name"
+      defaultSortOrder="asc"
+      // 액션 관련
+      onDelete={deleteAsset}
+      onDeleteMultiple={deleteMultipleAssets}
+      // 헤더 액션
+      headerActions={headerActions}
+      // 클릭 핸들러
+      onItemClick={(asset) => navigate(`/assets/detail/${asset.id}`)}
+      // 추가 설정
+      defaultViewMode="table"
+      searchPlaceholder="자산명, 카테고리, 위치 또는 담당자 검색..."
+    />
   );
 };
 

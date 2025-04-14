@@ -4,37 +4,48 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageContainer from "../../components/common/PageContainer";
 import UserForm from "../../components/users/UserForm";
+import { useFirestore } from "../../hooks/useFirestore";
+import { useMessageContext } from "../../context/MessageContext";
 
 const UsersAdd = () => {
   const navigate = useNavigate();
+  const { addDocument } = useFirestore("users");
+  const { showSuccess, showError } = useMessageContext();
   const [loading, setLoading] = useState(false);
+
+  // 초기 데이터 설정
+  const initialData = {
+    name: "",
+    email: "",
+    phone: "",
+    department: "",
+    position: "",
+    employeeId: "",
+    joinDate: "",
+    status: "재직중",
+    role: "사용자",
+    location: "",
+  };
 
   const handleSubmit = async (formData) => {
     try {
       setLoading(true);
-      // 실제 구현에서는 API 호출
-      console.log("사용자 등록:", formData);
 
-      // 성공 시 사용자 목록 페이지로 이동
-      setTimeout(() => {
-        setLoading(false);
-        navigate("/users", {
-          state: { message: "사용자가 성공적으로 등록되었습니다." },
-        });
-      }, 1000);
+      // Firestore에 사용자 추가 (createdAt, updatedAt은 useFirestore에서 처리)
+      const newUserId = await addDocument(formData);
+
+      showSuccess("사용자 추가 완료", "사용자가 성공적으로 추가되었습니다.");
+      navigate("/users");
     } catch (error) {
-      console.error("사용자 등록 중 오류 발생:", error);
+      console.error("사용자 추가 중 오류가 발생했습니다:", error);
+      showError("추가 오류", "사용자 추가에 실패했습니다.");
       setLoading(false);
     }
   };
 
   return (
-    <PageContainer>
+    <PageContainer title="사용자 등록">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">사용자 등록</h1>
-        </div>
-
         <div className="bg-card rounded-lg shadow p-6 border border-border">
           {loading ? (
             <div className="flex justify-center items-center h-64">
@@ -42,7 +53,7 @@ const UsersAdd = () => {
               <span className="ml-2 text-muted-foreground">처리 중...</span>
             </div>
           ) : (
-            <UserForm onSubmit={handleSubmit} />
+            <UserForm initialData={initialData} onSubmit={handleSubmit} />
           )}
         </div>
       </div>

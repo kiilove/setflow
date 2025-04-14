@@ -1,6 +1,8 @@
 "use client";
+import { useEffect, useState, useCallback } from "react";
 import { FaPlus, FaTrash } from "react-icons/fa";
 import { getButtonVariantClass } from "../../utils/themeUtils";
+import { useFirestore } from "../../hooks/useFirestore";
 
 const SpecificationsSection = ({
   specFields,
@@ -12,46 +14,88 @@ const SpecificationsSection = ({
   formData,
   handleChange,
 }) => {
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const { getCollection } = useFirestore("categories");
+
+  // Firestore에서 카테고리 데이터 불러오기
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        const data = await getCollection();
+        setCategories(data);
+      } catch (error) {
+        console.error(
+          "카테고리 데이터를 불러오는 중 오류가 발생했습니다:",
+          error
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, [getCollection]);
+
+  // 카테고리 변경 핸들러
+  const handleCategoryChange = (e) => {
+    // 기본 handleChange 함수를 호출하여 formData의 category 업데이트
+    handleChange(e);
+  };
+
+  // 선택된 카테고리 데이터 찾기
+  useEffect(() => {
+    if (formData.category && categories.length > 0) {
+      const category = categories.find((cat) => cat.name === formData.category);
+      setSelectedCategory(category);
+    } else {
+      setSelectedCategory(null);
+    }
+  }, [formData.category, categories]);
+
+  // 사양 필드 업데이트를 위한 콜백 함수 정의
+  const handleSpecFieldsUpdate = useCallback((newSpecFields) => {
+    console.log("사양 필드 업데이트:", newSpecFields);
+  }, []);
+
+  // 카테고리가 변경될 때 사양 템플릿 업데이트
+  useEffect(() => {
+    if (selectedCategory) {
+      // 선택된 카테고리에 specFields가 있는 경우
+      if (
+        selectedCategory.specFields &&
+        selectedCategory.specFields.length > 0
+      ) {
+        // 기존 사양 값 유지
+        const existingSpecs = formData.specifications || {};
+
+        // 새 템플릿에 기존 값 적용
+        const newSpecFields = selectedCategory.specFields.map((field) => ({
+          ...field,
+          value: existingSpecs[field.id] || "",
+        }));
+
+        // 사양 필드 업데이트
+        handleSpecFieldsUpdate(newSpecFields);
+      } else {
+        // 카테고리에 specFields가 없는 경우 빈 배열로 설정
+        handleSpecFieldsUpdate([]);
+      }
+    }
+  }, [selectedCategory, formData.specifications, handleSpecFieldsUpdate]);
+
+  // 사양 필드 직접 업데이트 함수
+  const updateSpecFields = (newSpecFields) => {
+    // 부모 컴포넌트에서 전달받은 specFields 상태 업데이트 함수가 없는 경우
+    // 콘솔에 로그만 출력
+    console.log("사양 필드 업데이트:", newSpecFields);
+  };
+
   return (
     <div className="animate-in fade-in duration-500">
-      {/* 카테고리 선택 드롭다운 */}
-      <div className="mb-6">
-        <label
-          htmlFor="category"
-          className="block text-sm font-medium text-foreground mb-2"
-        >
-          카테고리 변경
-        </label>
-        <select
-          id="category"
-          name="category"
-          value={formData.category}
-          onChange={handleChange}
-          className="w-full md:w-1/2 rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-        >
-          <option value="">카테고리 선택</option>
-          <optgroup label="컴퓨터 장비">
-            <option value="데스크탑">데스크탑</option>
-            <option value="노트북">노트북</option>
-            <option value="모니터">모니터</option>
-            <option value="모바일기기">모바일기기</option>
-            <option value="주변기기">주변기기</option>
-          </optgroup>
-          <optgroup label="사무 장비">
-            <option value="사무기기">사무기기</option>
-            <option value="가구">가구</option>
-          </optgroup>
-          <optgroup label="IT 인프라">
-            <option value="서버">서버</option>
-            <option value="네트워크장비">네트워크장비</option>
-            <option value="소프트웨어">소프트웨어</option>
-          </optgroup>
-          <option value="기타">기타</option>
-        </select>
-        <p className="text-xs text-muted-foreground mt-1">
-          카테고리를 변경하면 사양 템플릿이 자동으로 업데이트됩니다.
-        </p>
-      </div>
+      {/* 카테고리 선택 드롭다운은 CategorySection으로 이동했으므로 여기서는 제거 */}
 
       {/* 사양 정보 (템플릿 기반) */}
       {specFields.length > 0 && (

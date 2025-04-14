@@ -510,10 +510,10 @@ export const categoriesData = [
     iconTextColor: "text-blue-500",
     iconColorName: "파랑",
     depreciation: {
-      method: "straight-line",
-      years: 4,
-      residualValueType: "percentage",
-      residualValue: 10,
+      method: "declining-balance",
+      years: 5,
+      residualValueType: "fixed",
+      residualValue: 1000,
     },
   },
   {
@@ -527,10 +527,10 @@ export const categoriesData = [
     iconTextColor: "text-purple-500",
     iconColorName: "보라",
     depreciation: {
-      method: "straight-line",
-      years: 3,
+      method: "declining-balance",
+      years: 5,
       residualValueType: "fixed",
-      residualValue: 100000,
+      residualValue: 1000,
     },
   },
   {
@@ -544,10 +544,10 @@ export const categoriesData = [
     iconTextColor: "text-green-500",
     iconColorName: "초록",
     depreciation: {
-      method: "straight-line",
+      method: "declining-balance",
       years: 5,
-      residualValueType: "percentage",
-      residualValue: 5,
+      residualValueType: "fixed",
+      residualValue: 1000,
     },
   },
   {
@@ -561,10 +561,10 @@ export const categoriesData = [
     iconTextColor: "text-yellow-500",
     iconColorName: "노랑",
     depreciation: {
-      method: "straight-line",
-      years: 2,
+      method: "declining-balance",
+      years: 5,
       residualValueType: "fixed",
-      residualValue: 50000,
+      residualValue: 1000,
     },
   },
   {
@@ -578,10 +578,10 @@ export const categoriesData = [
     iconTextColor: "text-red-500",
     iconColorName: "빨강",
     depreciation: {
-      method: "straight-line",
-      years: 3,
-      residualValueType: "percentage",
-      residualValue: 10,
+      method: "declining-balance",
+      years: 5,
+      residualValueType: "fixed",
+      residualValue: 1000,
     },
   },
   {
@@ -595,10 +595,10 @@ export const categoriesData = [
     iconTextColor: "text-orange-500",
     iconColorName: "주황",
     depreciation: {
-      method: "straight-line",
+      method: "declining-balance",
       years: 5,
       residualValueType: "fixed",
-      residualValue: 100000,
+      residualValue: 1000,
     },
   },
   {
@@ -612,10 +612,10 @@ export const categoriesData = [
     iconTextColor: "text-indigo-500",
     iconColorName: "남색",
     depreciation: {
-      method: "straight-line",
-      years: 4,
-      residualValueType: "percentage",
-      residualValue: 12,
+      method: "declining-balance",
+      years: 5,
+      residualValueType: "fixed",
+      residualValue: 1000,
     },
   },
   {
@@ -629,10 +629,10 @@ export const categoriesData = [
     iconTextColor: "text-teal-500",
     iconColorName: "청록",
     depreciation: {
-      method: "straight-line",
-      years: 3,
+      method: "declining-balance",
+      years: 5,
       residualValueType: "fixed",
-      residualValue: 50000,
+      residualValue: 1000,
     },
   },
   {
@@ -646,10 +646,10 @@ export const categoriesData = [
     iconTextColor: "text-pink-500",
     iconColorName: "분홍",
     depreciation: {
-      method: "straight-line",
-      years: 1,
+      method: "declining-balance",
+      years: 5,
       residualValueType: "fixed",
-      residualValue: 0,
+      residualValue: 1000,
     },
   },
   {
@@ -663,10 +663,10 @@ export const categoriesData = [
     iconTextColor: "text-gray-500",
     iconColorName: "기본",
     depreciation: {
-      method: "straight-line",
-      years: 7,
-      residualValueType: "percentage",
-      residualValue: 2,
+      method: "declining-balance",
+      years: 5,
+      residualValueType: "fixed",
+      residualValue: 1000,
     },
   },
   {
@@ -680,10 +680,10 @@ export const categoriesData = [
     iconTextColor: "text-gray-500",
     iconColorName: "기본",
     depreciation: {
-      method: "straight-line",
+      method: "declining-balance",
       years: 5,
       residualValueType: "fixed",
-      residualValue: 10000,
+      residualValue: 1000,
     },
   },
 ];

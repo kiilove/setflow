@@ -1,72 +1,82 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import PageContainer from "../../components/common/PageContainer";
 import DepartmentForm from "../../components/departments/DepartmentForm";
+import { useState, useEffect } from "react";
+import { useFirestore } from "../../hooks/useFirestore";
+import { useMessageContext } from "../../context/MessageContext";
 
 const DepartmentsEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [department, setDepartment] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const { getDocument, updateDocument } = useFirestore("departments");
+  const { showSuccess, showError } = useMessageContext();
 
   useEffect(() => {
     const fetchDepartment = async () => {
       try {
-        // 실제 구현에서는 API 호출
-        // 예시 데이터
-        const departmentData = {
-          id: Number.parseInt(id),
-          name: "개발팀",
-          manager: "김철수",
-          location: "본사 3층",
-          description: "소프트웨어 개발 및 유지보수 담당",
+        setLoading(true);
+        const data = await getDocument(id);
+
+        if (!data) {
+          throw new Error("부서를 찾을 수 없습니다.");
+        }
+
+        // 필수 필드가 없는 경우 기본값 설정
+        const completeData = {
+          ...data,
+          // icon 관련 필드가 없으면 기본값 설정
+          icon: data.icon || "Building",
+          iconColor: data.iconColor || "bg-gray-100",
+          iconTextColor: data.iconTextColor || "text-gray-500",
+          iconColorName: data.iconColorName || "기본",
         };
 
-        setTimeout(() => {
-          setDepartment(departmentData);
-          setLoading(false);
-        }, 800);
-      } catch (error) {
-        console.error("부서 정보를 불러오는 중 오류가 발생했습니다:", error);
-        setError("부서 정보를 불러올 수 없습니다.");
+        setDepartment(completeData);
+      } catch (err) {
+        console.error("부서 로딩 오류:", err);
+        setError(err.message);
+        showError(
+          "로딩 오류",
+          err.message || "부서를 불러오는 중 오류가 발생했습니다."
+        );
+      } finally {
         setLoading(false);
       }
     };
 
     fetchDepartment();
-  }, [id]);
+  }, [id, getDocument, showError]);
 
+  // 폼 제출 핸들러
   const handleSubmit = async (formData) => {
     try {
-      setSubmitting(true);
-      // 실제 구현에서는 API 호출
-      console.log("부서 정보 수정:", formData);
+      // Firestore 업데이트 - updatedAt 제거
+      await updateDocument(id, formData);
 
-      // 성공 시 부서 목록 페이지로 이동
-      setTimeout(() => {
-        setSubmitting(false);
-        navigate("/users/departments", {
-          state: { message: "부서 정보가 성공적으로 수정되었습니다." },
-        });
-      }, 1000);
-    } catch (error) {
-      console.error("부서 정보 수정 중 오류 발생:", error);
-      setSubmitting(false);
+      showSuccess("부서 수정 완료", "부서가 성공적으로 업데이트되었습니다.");
+      navigate("/departments");
+    } catch (err) {
+      console.error("부서 업데이트 오류:", err);
+      showError("수정 오류", "부서 업데이트 중 오류가 발생했습니다.");
     }
+  };
+
+  // 취소 핸들러
+  const handleCancel = () => {
+    navigate("/departments");
   };
 
   if (loading) {
     return (
-      <PageContainer>
+      <PageContainer title="부서 수정">
         <div className="flex justify-center items-center h-64">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <span className="ml-2 text-muted-foreground">
-            부서 정보를 불러오는 중...
-          </span>
+          <span className="ml-2 text-muted-foreground">로딩 중...</span>
         </div>
       </PageContainer>
     );
@@ -74,12 +84,12 @@ const DepartmentsEdit = () => {
 
   if (error) {
     return (
-      <PageContainer>
-        <div className="bg-destructive/10 text-destructive p-4 rounded-md">
-          <p>{error}</p>
+      <PageContainer title="부서 수정">
+        <div className="flex flex-col justify-center items-center h-64">
+          <p className="text-destructive mb-4">{error}</p>
           <button
-            onClick={() => navigate("/users/departments")}
-            className="mt-2 px-4 py-2 bg-background border border-input rounded-md hover:bg-muted transition-colors"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            onClick={() => navigate("/departments")}
           >
             부서 목록으로 돌아가기
           </button>
@@ -89,27 +99,14 @@ const DepartmentsEdit = () => {
   }
 
   return (
-    <PageContainer>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">부서 정보 수정</h1>
-        </div>
-
-        <div className="bg-card rounded-lg shadow p-6 border border-border">
-          {submitting ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-              <span className="ml-2 text-muted-foreground">처리 중...</span>
-            </div>
-          ) : (
-            <DepartmentForm
-              department={department}
-              onSubmit={handleSubmit}
-              isEditing={true}
-            />
-          )}
-        </div>
-      </div>
+    <PageContainer title="부서 수정">
+      {department && (
+        <DepartmentForm
+          initialData={department}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+        />
+      )}
     </PageContainer>
   );
 };

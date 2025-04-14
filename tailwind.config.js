@@ -4,6 +4,11 @@ module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}", "*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Noto Sans KR", "Nanum Gothic", "sans-serif"],
+        noto: ["Noto Sans KR", "sans-serif"],
+        nanum: ["Nanum Gothic", "sans-serif"],
+      },
       colors: {
         border: "rgb(var(--border))",
         input: "rgb(var(--input))",

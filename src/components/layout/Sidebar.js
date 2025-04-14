@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa";
 import { getSidebarRoutes } from "../../routes";
+import SetFlowLogo from "../common/SetFlowLogo";
 
 const Sidebar = ({ isOpen, toggleSidebar, theme }) => {
   const location = useLocation();
@@ -58,14 +59,7 @@ const Sidebar = ({ isOpen, toggleSidebar, theme }) => {
             className="flex items-center gap-2"
             onClick={handleMenuClick}
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary shadow-md">
-              <span className="text-lg font-bold text-primary-foreground">
-                SF
-              </span>
-            </div>
-            <span className="text-lg font-semibold text-foreground">
-              SetFlow
-            </span>
+            <SetFlowLogo />
           </Link>
         </div>
 

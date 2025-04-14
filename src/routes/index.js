@@ -52,7 +52,7 @@ import ReportsMaintenance from "../pages/reports/ReportsMaintenance";
 // 위치 관리
 import Locations from "../pages/locations/Locations";
 import LocationsAdd from "../pages/locations/LocationsAdd";
-import LocationsMap from "../pages/locations/LocationsMap";
+import LocationsMap from "../pages/locations/LocationsMapOld";
 
 // 사용자 관리
 import Users from "../pages/users/Users";
@@ -76,6 +76,7 @@ import ClientPCs from "../pages/client-pcs/ClientPCs";
 import LocationsEdit from "../pages/locations/LocationsEdit";
 import MaintenanceEdit from "../pages/maintenance/MaintenanceEdit";
 import MaintenanceDetail from "../pages/maintenance/MaintenanceDetail";
+import CategoriesDetail from "../pages/categories/CategoriesDetail";
 
 /**
  * 라우트 구조 정의
@@ -272,6 +273,15 @@ const routes = [
         path: "/categories/template/:id",
         component: CategoriesTemplate,
         title: "사양 템플릿 편집",
+        parent: "categories",
+        showInSidebar: false,
+        requiresAuth: true,
+      },
+      {
+        id: "categories-detail",
+        path: "/categories/detail/:id",
+        component: CategoriesDetail,
+        title: "카테고리 상세",
         parent: "categories",
         showInSidebar: false,
         requiresAuth: true,

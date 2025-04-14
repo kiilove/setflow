@@ -1,345 +1,210 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Search, X } from "lucide-react";
-import {
-  Building,
-  Building2,
-  Landmark,
-  Factory,
-  Home,
-  Store,
-  Warehouse,
-  School,
-  Library,
-  Hospital,
-  Hotel,
-  Briefcase,
-  Users,
-  UserCog,
-  Code,
-  PenTool,
-  Brush,
-  LineChart,
-  BarChart,
-  ShoppingCart,
-  Truck,
-  Wrench,
-  Cog,
-  HeartPulse,
-  BookOpen,
-  Microscope,
-  Beaker,
-  Laptop,
-  Server,
-  Shield,
-  Headphones,
-  Coffee,
-  Utensils,
-  Leaf,
-  Plane,
-  Car,
-  Train,
-  Ship,
-  Zap,
-  Droplet,
-  Flame,
-  Globe,
-} from "lucide-react";
-import { getButtonVariantClass } from "../../utils/themeUtils";
+import React, { useState } from "react";
+import * as Icons from "lucide-react";
 
-// 아이콘 색상 옵션
-const colorOptions = [
-  { name: "기본", bg: "bg-gray-100", text: "text-gray-500" },
-  { name: "빨강", bg: "bg-red-100", text: "text-red-500" },
-  { name: "주황", bg: "bg-orange-100", text: "text-orange-500" },
-  { name: "노랑", bg: "bg-yellow-100", text: "text-yellow-500" },
-  { name: "초록", bg: "bg-green-100", text: "text-green-500" },
-  { name: "청록", bg: "bg-teal-100", text: "text-teal-500" },
-  { name: "파랑", bg: "bg-blue-100", text: "text-blue-500" },
-  { name: "남색", bg: "bg-indigo-100", text: "text-indigo-500" },
-  { name: "보라", bg: "bg-purple-100", text: "text-purple-500" },
-  { name: "분홍", bg: "bg-pink-100", text: "text-pink-500" },
-];
-
-// 부서에 특화된 아이콘 목록
-const departmentIcons = [
-  // 건물/시설 관련
-  { name: "Building", Icon: Building, category: "건물/시설" },
-  { name: "Building2", Icon: Building2, category: "건물/시설" },
-  { name: "Landmark", Icon: Landmark, category: "건물/시설" },
-  { name: "Factory", Icon: Factory, category: "건물/시설" },
-  { name: "Home", Icon: Home, category: "건물/시설" },
-  { name: "Store", Icon: Store, category: "건물/시설" },
-  { name: "Warehouse", Icon: Warehouse, category: "건물/시설" },
-  { name: "School", Icon: School, category: "건물/시설" },
-  { name: "Library", Icon: Library, category: "건물/시설" },
-  { name: "Hospital", Icon: Hospital, category: "건물/시설" },
-  { name: "Hotel", Icon: Hotel, category: "건물/시설" },
-
-  // 부서/팀 관련
-  { name: "Briefcase", Icon: Briefcase, category: "부서/팀" },
-  { name: "Users", Icon: Users, category: "부서/팀" },
-  { name: "UserCog", Icon: UserCog, category: "부서/팀" },
-
-  // 직무 관련
-  { name: "Code", Icon: Code, category: "직무" },
-  { name: "PenTool", Icon: PenTool, category: "직무" },
-  { name: "Brush", Icon: Brush, category: "직무" },
-  { name: "LineChart", Icon: LineChart, category: "직무" },
-  { name: "BarChart", Icon: BarChart, category: "직무" },
-  { name: "ShoppingCart", Icon: ShoppingCart, category: "직무" },
-  { name: "Truck", Icon: Truck, category: "직무" },
-  { name: "Wrench", Icon: Wrench, category: "직무" },
-  { name: "Cog", Icon: Cog, category: "직무" },
-
-  // 산업 관련
-  { name: "HeartPulse", Icon: HeartPulse, category: "산업" },
-  { name: "BookOpen", Icon: BookOpen, category: "산업" },
-  { name: "Microscope", Icon: Microscope, category: "산업" },
-  { name: "Beaker", Icon: Beaker, category: "산업" },
-  { name: "Laptop", Icon: Laptop, category: "산업" },
-  { name: "Server", Icon: Server, category: "산업" },
-  { name: "Shield", Icon: Shield, category: "산업" },
-  { name: "Headphones", Icon: Headphones, category: "산업" },
-  { name: "Coffee", Icon: Coffee, category: "산업" },
-  { name: "Utensils", Icon: Utensils, category: "산업" },
-  { name: "Leaf", Icon: Leaf, category: "산업" },
-
-  // 교통/인프라
-  { name: "Plane", Icon: Plane, category: "교통/인프라" },
-  { name: "Car", Icon: Car, category: "교통/인프라" },
-  { name: "Train", Icon: Train, category: "교통/인프라" },
-  { name: "Ship", Icon: Ship, category: "교통/인프라" },
-  { name: "Zap", Icon: Zap, category: "교통/인프라" },
-  { name: "Droplet", Icon: Droplet, category: "교통/인프라" },
-  { name: "Flame", Icon: Flame, category: "교통/인프라" },
-  { name: "Globe", Icon: Globe, category: "교통/인프라" },
-];
-
+/**
+ * 부서 아이콘 선택 컴포넌트
+ * @param {Object} props
+ * @param {string} props.selectedIcon - 선택된 아이콘 이름
+ * @param {Object} props.selectedColor - 선택된 색상 객체 {name, bg, text}
+ * @param {Function} props.onSelectIcon - 아이콘 선택 핸들러
+ * @param {Function} props.onSelectColor - 색상 선택 핸들러
+ */
 const DepartmentIconSelector = ({
   selectedIcon,
   selectedColor,
   onSelectIcon,
   onSelectColor,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [showIconPicker, setShowIconPicker] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredIcons, setFilteredIcons] = useState(departmentIcons);
-  const [selectedCategory, setSelectedCategory] = useState("전체");
-  const modalRef = useRef(null);
 
-  // 고유한 카테고리 목록 생성
-  const categories = [
-    "전체",
-    ...new Set(departmentIcons.map((icon) => icon.category)),
+  // 아이콘 목록 (부서 관련 아이콘만 포함)
+  const departmentIcons = [
+    "Building",
+    "Building2",
+    "Briefcase",
+    "Users",
+    "UserCircle",
+    "Landmark",
+    "Home",
+    "Factory",
+    "Network",
+    "Globe",
+    "Laptop",
+    "Smartphone",
+    "Wrench",
+    "Settings",
+    "Code",
+    "PenTool",
+    "Palette",
+    "FileText",
+    "BarChart",
+    "DollarSign",
+    "ShoppingCart",
+    "HeartPulse",
+    "GraduationCap",
+    "BookOpen",
+    "Coffee",
+    "Utensils",
   ];
 
-  // 검색어와 카테고리에 따라 아이콘 필터링
-  useEffect(() => {
-    let filtered = departmentIcons;
+  // 색상 옵션
+  const colorOptions = [
+    { name: "기본", bg: "bg-gray-100", text: "text-gray-500" },
+    { name: "빨강", bg: "bg-red-100", text: "text-red-500" },
+    { name: "주황", bg: "bg-orange-100", text: "text-orange-500" },
+    { name: "노랑", bg: "bg-yellow-100", text: "text-yellow-500" },
+    { name: "초록", bg: "bg-green-100", text: "text-green-500" },
+    { name: "청록", bg: "bg-teal-100", text: "text-teal-500" },
+    { name: "파랑", bg: "bg-blue-100", text: "text-blue-500" },
+    { name: "남색", bg: "bg-indigo-100", text: "text-indigo-500" },
+    { name: "보라", bg: "bg-purple-100", text: "text-purple-500" },
+    { name: "분홍", bg: "bg-pink-100", text: "text-pink-500" },
+  ];
 
-    // 카테고리 필터링
-    if (selectedCategory !== "전체") {
-      filtered = filtered.filter((icon) => icon.category === selectedCategory);
+  // 아이콘 렌더링 함수
+  const renderIcon = (iconName) => {
+    if (Icons[iconName]) {
+      return React.createElement(Icons[iconName], {
+        className: "h-5 w-5",
+      });
     }
-
-    // 검색어 필터링
-    if (searchTerm) {
-      filtered = filtered.filter((icon) =>
-        icon.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setFilteredIcons(filtered);
-  }, [searchTerm, selectedCategory]);
-
-  // 모달 외부 클릭 시 닫기
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (modalRef.current && !modalRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen]);
-
-  // 아이콘 선택 핸들러
-  const handleSelectIcon = (iconName) => {
-    onSelectIcon(iconName);
-    setIsOpen(false);
+    return null;
   };
 
-  // 현재 선택된 아이콘 컴포넌트 가져오기
-  const getSelectedIconComponent = () => {
-    const foundIcon = departmentIcons.find(
-      (icon) => icon.name === selectedIcon
-    );
-    if (foundIcon) {
-      return foundIcon.Icon;
-    }
-    return Building; // 기본 아이콘
-  };
-
-  const SelectedIconComponent = getSelectedIconComponent();
+  // 검색어에 따른 아이콘 필터링
+  const filteredIcons = departmentIcons.filter((icon) =>
+    icon.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="relative">
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-foreground">
-          부서 아이콘 선택
-        </label>
-        <div className="flex items-center space-x-4">
-          <button
-            type="button"
-            onClick={() => setIsOpen(true)}
-            className={`flex items-center justify-center w-12 h-12 rounded-md border border-input ${
-              selectedColor?.bg || "bg-gray-100"
-            } ${
-              selectedColor?.text || "text-gray-500"
-            } hover:border-primary transition-colors`}
-          >
-            <SelectedIconComponent className="h-6 w-6" />
-          </button>
-          <div className="flex-1">
-            <p className="text-sm text-foreground">
-              {selectedIcon || "아이콘 선택"}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              아이콘을 클릭하여 변경하세요
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="space-y-4">
+      <label className="block text-sm font-medium text-foreground">
+        부서 아이콘 및 색상
+      </label>
 
-      {/* 색상 선택 */}
-      <div className="mt-4 space-y-2">
-        <label className="block text-sm font-medium text-foreground">
-          아이콘 색상
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {colorOptions.map((color) => (
+      <div className="flex flex-wrap gap-4">
+        {/* 선택된 아이콘 표시 */}
+        <div className="space-y-2">
+          <label className="text-sm text-muted-foreground">아이콘</label>
+          <div className="relative">
             <button
-              key={color.name}
               type="button"
-              onClick={() => onSelectColor(color)}
-              className={`w-8 h-8 rounded-full ${color.bg} ${
-                color.text
-              } flex items-center justify-center ${
-                selectedColor?.name === color.name
-                  ? "ring-2 ring-primary ring-offset-2"
-                  : ""
-              }`}
-              title={color.name}
+              onClick={() => setShowIconPicker(!showIconPicker)}
+              className="flex items-center justify-center w-12 h-12 rounded-md border border-input bg-background hover:bg-muted transition-colors"
             >
-              {selectedColor?.name === color.name && <X className="h-4 w-4" />}
+              {selectedIcon && renderIcon(selectedIcon)}
             </button>
-          ))}
+            {showIconPicker && (
+              <div className="absolute z-10 mt-2 p-4 bg-card border border-border rounded-md shadow-lg w-72">
+                <div className="mb-2">
+                  <input
+                    type="text"
+                    placeholder="아이콘 검색..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div className="grid grid-cols-6 gap-2 max-h-60 overflow-y-auto">
+                  {filteredIcons.map((icon) => (
+                    <button
+                      key={icon}
+                      type="button"
+                      onClick={() => {
+                        onSelectIcon(icon);
+                        setShowIconPicker(false);
+                        setSearchTerm("");
+                      }}
+                      className={`flex items-center justify-center p-2 rounded-md hover:bg-muted transition-colors ${
+                        selectedIcon === icon
+                          ? "bg-primary/10 border border-primary"
+                          : ""
+                      }`}
+                      title={icon}
+                    >
+                      {renderIcon(icon)}
+                    </button>
+                  ))}
+                </div>
+                {filteredIcons.length === 0 && (
+                  <div className="text-center py-2 text-muted-foreground">
+                    검색 결과가 없습니다
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* 아이콘 선택 모달 */}
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div
-            ref={modalRef}
-            className="bg-background rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] overflow-hidden"
-          >
-            <div className="p-4 border-b border-border flex justify-between items-center">
-              <h3 className="text-lg font-semibold">부서 아이콘 선택</h3>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="text-muted-foreground hover:text-foreground p-1 rounded-full"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="p-4 border-b border-border space-y-4">
-              {/* 검색창 */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <input
-                  type="text"
-                  placeholder="아이콘 검색..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-              </div>
-
-              {/* 카테고리 필터 */}
-              <div className="flex flex-wrap gap-2">
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    type="button"
-                    onClick={() => setSelectedCategory(category)}
-                    className={`px-3 py-1 rounded-full text-xs ${
-                      selectedCategory === category
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-4 overflow-y-auto" style={{ maxHeight: "50vh" }}>
-              {filteredIcons.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  검색 결과가 없습니다.
+        {/* 선택된 색상 표시 */}
+        <div className="space-y-2">
+          <label className="text-sm text-muted-foreground">색상</label>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowColorPicker(!showColorPicker)}
+              className={`flex items-center justify-center w-12 h-12 rounded-md border border-input ${selectedColor.bg} ${selectedColor.text} hover:opacity-90 transition-opacity`}
+            >
+              {selectedIcon && renderIcon(selectedIcon)}
+            </button>
+            {showColorPicker && (
+              <div className="absolute z-10 mt-2 p-4 bg-card border border-border rounded-md shadow-lg w-72">
+                <div className="grid grid-cols-5 gap-2">
+                  {colorOptions.map((color) => (
+                    <button
+                      key={color.name}
+                      type="button"
+                      onClick={() => {
+                        onSelectColor(color);
+                        setShowColorPicker(false);
+                      }}
+                      className={`flex items-center justify-center p-2 rounded-md ${
+                        color.bg
+                      } ${color.text} hover:opacity-90 transition-opacity ${
+                        selectedColor.name === color.name
+                          ? "ring-2 ring-primary"
+                          : ""
+                      }`}
+                      title={color.name}
+                    >
+                      {selectedIcon && renderIcon(selectedIcon)}
+                    </button>
+                  ))}
                 </div>
-              ) : (
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4">
-                  {filteredIcons.map((icon) => {
-                    const IconComponent = icon.Icon;
-                    return (
-                      <button
-                        key={icon.name}
-                        type="button"
-                        onClick={() => handleSelectIcon(icon.name)}
-                        className={`p-3 rounded-md flex flex-col items-center justify-center hover:bg-muted transition-colors ${
-                          selectedIcon === icon.name
-                            ? "bg-primary/10 text-primary border border-primary/30"
-                            : "border border-transparent"
-                        }`}
-                      >
-                        <IconComponent className="h-6 w-6 mb-1" />
-                        <span className="text-xs text-center truncate w-full">
-                          {icon.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
+        </div>
 
-            <div className="p-4 border-t border-border flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className={`px-4 py-2 rounded-md text-sm ${getButtonVariantClass(
-                  "outline"
-                )}`}
-              >
-                취소
-              </button>
+        {/* 선택된 아이콘 및 색상 정보 */}
+        <div className="flex-grow">
+          <div className="text-sm text-muted-foreground mb-1">미리보기</div>
+          <div className="flex items-center gap-2 p-2 border border-border rounded-md">
+            <div
+              className={`p-2 rounded-full ${selectedColor.bg} ${selectedColor.text}`}
+            >
+              {selectedIcon && renderIcon(selectedIcon)}
+            </div>
+            <div>
+              <div className="text-sm font-medium">
+                {selectedIcon || "아이콘 선택"}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {selectedColor.name}
+              </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        부서를 대표하는 아이콘과 색상을 선택하세요. 아이콘은 부서 목록과 상세
+        페이지에 표시됩니다.
+      </p>
     </div>
   );
 };

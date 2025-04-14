@@ -16,7 +16,7 @@ const BasicInfoSection = ({ formData, handleChange }) => {
             id="name"
             name="name"
             required
-            value={formData.name}
+            value={formData.name || ""}
             onChange={handleChange}
             placeholder="자산의 이름을 입력하세요"
             className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
@@ -37,7 +37,7 @@ const BasicInfoSection = ({ formData, handleChange }) => {
             type="text"
             id="serialNumber"
             name="serialNumber"
-            value={formData.serialNumber}
+            value={formData.serialNumber || ""}
             onChange={handleChange}
             placeholder="제품의 시리얼 번호"
             className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
@@ -55,7 +55,7 @@ const BasicInfoSection = ({ formData, handleChange }) => {
             type="text"
             id="model"
             name="model"
-            value={formData.model}
+            value={formData.model || ""}
             onChange={handleChange}
             placeholder="제품의 모델명"
             className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
@@ -73,7 +73,7 @@ const BasicInfoSection = ({ formData, handleChange }) => {
             type="text"
             id="manufacturer"
             name="manufacturer"
-            value={formData.manufacturer}
+            value={formData.manufacturer || ""}
             onChange={handleChange}
             placeholder="제조사 이름"
             className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
@@ -91,7 +91,7 @@ const BasicInfoSection = ({ formData, handleChange }) => {
             id="status"
             name="status"
             required
-            value={formData.status}
+            value={formData.status || "사용가능"}
             onChange={handleChange}
             className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
           >
