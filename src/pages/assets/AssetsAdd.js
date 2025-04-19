@@ -34,6 +34,7 @@ const AssetsAdd = () => {
     assignedTo: "",
     department: "",
     assignedDate: "",
+    role: "", // role 필드 추가
     specifications: {},
     customSpecifications: {}, // 커스텀 사양 필드 추가
     depreciation: {
@@ -103,7 +104,7 @@ const AssetsAdd = () => {
             formData.assignedDate || new Date().toISOString().split("T")[0],
           contactNumber: formData.contactNumber,
           email: formData.email,
-          role: formData.role,
+          role: formData.role || "", // role이 없으면 빈 문자열로 설정
           notes: formData.notes,
         };
 

@@ -1,77 +1,129 @@
-import { Link, useLocation } from "react-router-dom";
+"use client";
+
+import { NavLink } from "react-router-dom";
 import {
   Settings,
   Bell,
-  Database,
-  UserCog,
   Shield,
-  ChevronRight,
+  Users,
+  Database,
+  Building,
+  Briefcase,
+  IdCard,
 } from "lucide-react";
 
 const SettingsMenu = () => {
-  const location = useLocation();
-
-  // 현재 경로에 따라 활성 메뉴 항목 결정
-  const isActive = (path) => {
-    return location.pathname === path;
-  };
-
-  const menuItems = [
-    {
-      path: "/settings",
-      icon: <Settings className="mr-3 h-5 w-5" />,
-      label: "일반 설정",
-    },
-    {
-      path: "/settings/notifications",
-      icon: <Bell className="mr-3 h-5 w-5 text-yellow-500" />,
-      label: "알림 설정",
-    },
-    {
-      path: "/settings/backup",
-      icon: <Database className="mr-3 h-5 w-5 text-blue-500" />,
-      label: "백업 및 복원",
-    },
-    {
-      path: "/settings/admin",
-      icon: <UserCog className="mr-3 h-5 w-5 text-green-500" />,
-      label: "관리자 관리",
-    },
-    {
-      path: "/settings/security",
-      icon: <Shield className="mr-3 h-5 w-5 text-red-500" />,
-      label: "보안 설정",
-    },
-  ];
-
   return (
     <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border theme-transition">
-      <div className="p-4 border-b border-border theme-transition">
-        <h3 className="text-lg font-medium text-foreground theme-transition">
-          설정 메뉴
-        </h3>
-      </div>
-      <div className="p-2">
-        <nav className="space-y-1">
-          {menuItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center justify-between px-3 py-2 rounded-md ${
-                isActive(item.path)
-                  ? "bg-primary/10 text-primary"
-                  : "text-foreground hover:bg-muted theme-transition"
-              }`}
+      <nav className="p-4">
+        <ul className="space-y-2">
+          <li>
+            <NavLink
+              to="/settings/general"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                }`
+              }
             >
-              <div className="flex items-center">
-                {item.icon}
-                <span>{item.label}</span>
-              </div>
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          ))}
-        </nav>
-      </div>
+              <Building className="h-4 w-4" />
+              <span>회사 설정</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/settings/positions"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                }`
+              }
+            >
+              <Briefcase className="h-4 w-4" />
+              <span>직위/직책 관리</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/settings/employee-id"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                }`
+              }
+            >
+              <IdCard className="h-4 w-4" />
+              <span>사원번호 관리</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/settings/notifications"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                }`
+              }
+            >
+              <Bell className="h-4 w-4" />
+              <span>알림 설정</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/settings/security"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                }`
+              }
+            >
+              <Shield className="h-4 w-4" />
+              <span>보안 설정</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/settings/backup"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                }`
+              }
+            >
+              <Database className="h-4 w-4" />
+              <span>백업 설정</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/settings/admin"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                }`
+              }
+            >
+              <Users className="h-4 w-4" />
+              <span>관리자 설정</span>
+            </NavLink>
+          </li>
+        </ul>
+      </nav>
     </div>
   );
 };

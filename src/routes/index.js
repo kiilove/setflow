@@ -77,6 +77,7 @@ import LocationsEdit from "../pages/locations/LocationsEdit";
 import MaintenanceEdit from "../pages/maintenance/MaintenanceEdit";
 import MaintenanceDetail from "../pages/maintenance/MaintenanceDetail";
 import CategoriesDetail from "../pages/categories/CategoriesDetail";
+import LocationsDetail from "../pages/locations/LocationsDetail";
 
 /**
  * 라우트 구조 정의
@@ -526,6 +527,15 @@ const routes = [
         path: "/locations/edit/:id",
         component: LocationsEdit,
         title: "위치 수정",
+        parent: "locations",
+        showInSidebar: false,
+        requiresAuth: true,
+      },
+      {
+        id: "locations-detail",
+        path: "/locations/detail/:id",
+        component: LocationsDetail,
+        title: "위치 상세",
         parent: "locations",
         showInSidebar: false,
         requiresAuth: true,

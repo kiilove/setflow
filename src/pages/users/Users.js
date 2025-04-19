@@ -48,6 +48,7 @@ const Users = () => {
       user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.position?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.employeeId?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   };
@@ -72,6 +73,8 @@ const Users = () => {
       comparison = (a.department || "").localeCompare(b.department || "");
     } else if (sortBy === "position") {
       comparison = (a.position || "").localeCompare(b.position || "");
+    } else if (sortBy === "title") {
+      comparison = (a.title || "").localeCompare(b.title || "");
     } else if (sortBy === "role") {
       comparison = (a.role || "").localeCompare(b.role || "");
     } else if (sortBy === "status") {
@@ -111,72 +114,15 @@ const Users = () => {
 
   // 테이블 컬럼 정의
   const columns = [
-    {
-      id: "name",
-      header: "이름",
-      sortable: true,
-      render: (user) => (
-        <div className="flex items-center">
-          <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 mr-3 flex items-center justify-center">
-            {user.profileImage ? (
-              <img
-                src={user.profileImage || "/placeholder.svg"}
-                alt={user.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="font-bold text-primary">
-                {user.name.charAt(0)}
-              </span>
-            )}
-          </div>
-          <span className="font-medium">{user.name}</span>
-        </div>
-      ),
-    },
-    {
-      id: "email",
-      header: "이메일",
-      accessor: (user) => user.email || "-",
-    },
-    {
-      id: "department",
-      header: "부서",
-      accessor: (user) => user.department || "-",
-      sortable: true,
-    },
-    {
-      id: "position",
-      header: "직책",
-      accessor: (user) => user.position || "-",
-      sortable: true,
-    },
-    {
-      id: "status",
-      header: "상태",
-      sortable: true,
-      render: (user) => (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColorClass(
-            user.status || "미지정"
-          )}`}
-        >
-          {user.status || "미지정"}
-        </span>
-      ),
-    },
-    {
-      id: "role",
-      header: "권한",
-      accessor: (user) => user.role || "-",
-      sortable: true,
-    },
-    {
-      id: "joinDate",
-      header: "입사일",
-      accessor: (user) => formatDate(user.joinDate),
-      sortable: true,
-    },
+    { field: "name", headerName: "이름", width: 120 },
+    { field: "email", headerName: "이메일", width: 200 },
+    { field: "department", headerName: "부서", width: 120 },
+    { field: "position", headerName: "직위", width: 120 },
+    { field: "title", headerName: "직책", width: 120 },
+    { field: "role", headerName: "권한", width: 120 },
+    { field: "status", headerName: "상태", width: 120 },
+    { field: "joinDate", headerName: "입사일", width: 120 },
+    { field: "actions", headerName: "관리", width: 120, sortable: false },
   ];
 
   // 필터 정의
@@ -277,6 +223,8 @@ const Users = () => {
       // 추가 설정
       defaultViewMode="table"
       searchPlaceholder="이름, 이메일, 부서 또는 직책 검색..."
+      // 사용자가 없을 때는 테이블/그리드를 표시하지 않음
+      hideTableWhenEmpty={true}
     />
   );
 };

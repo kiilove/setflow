@@ -18,7 +18,8 @@ import { useFirestore } from "../../hooks/useFirestore";
 
 // 분리된 컴포넌트들 가져오기
 import BasicInfoSection from "./BasicInfoSection";
-import LocationAssignmentSection from "./LocationAssignmentSection";
+// import LocationAssignmentSection from "./LocationAssignmentSection";
+import AssignmentSection from "./AssignmentSection";
 import PurchaseInfoSection from "./PurchaseInfoSection";
 import SpecificationsSection from "./SpecificationsSection";
 import NotesSection from "./NotesSection";
@@ -386,9 +387,10 @@ const AssetsForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
               </span>
               위치 및 할당 정보
             </h2>
-            <LocationAssignmentSection
+            <AssignmentSection
               formData={formData}
               handleChange={handleChange}
+              isInForm={true}
             />
           </div>
 

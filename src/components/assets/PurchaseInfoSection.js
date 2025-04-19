@@ -77,23 +77,77 @@ const PurchaseInfoSection = ({ formData, handleChange }) => {
   return (
     <div className="animate-in fade-in duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <DateInput
-          id="purchaseDate"
-          name="purchaseDate"
-          label="구매일"
-          value={formData.purchaseDate}
-          onChange={handlePurchaseDateChange}
-          required
-        />
-        <NumberInput
-          id="purchasePrice"
-          name="purchasePrice"
-          label="구매 가격"
-          value={formData.purchasePrice}
-          onChange={handleChange}
-          prefix="₩"
-          placeholder="0"
-        />
+        {/* 구매일 */}
+        <div className="space-y-2">
+          <label
+            htmlFor="purchaseDate"
+            className="block text-sm font-medium text-foreground"
+          >
+            구매일
+          </label>
+          <DateInput
+            id="purchaseDate"
+            name="purchaseDate"
+            value={formData.purchaseDate}
+            onChange={handlePurchaseDateChange}
+            placeholder="YYYY-MM-DD"
+          />
+        </div>
+
+        {/* 보증 만료일 */}
+        <div className="space-y-2">
+          <label
+            htmlFor="warrantyExpiry"
+            className="block text-sm font-medium text-foreground"
+          >
+            보증 만료일
+          </label>
+          <DateInput
+            id="warrantyExpiry"
+            name="warrantyExpiry"
+            value={formData.warrantyExpiry}
+            onChange={handleChange}
+            placeholder="YYYY-MM-DD"
+          />
+        </div>
+
+        {/* 구매 가격 */}
+        <div className="space-y-2">
+          <label
+            htmlFor="purchasePrice"
+            className="block text-sm font-medium text-foreground"
+          >
+            구매 가격
+          </label>
+          <NumberInput
+            id="purchasePrice"
+            name="purchasePrice"
+            value={formData.purchasePrice}
+            onChange={handleChange}
+            placeholder="0"
+            prefix="₩"
+          />
+        </div>
+
+        {/* 현재 가치 */}
+        <div className="space-y-2">
+          <label
+            htmlFor="currentValue"
+            className="block text-sm font-medium text-foreground"
+          >
+            현재 가치
+          </label>
+          <NumberInput
+            id="currentValue"
+            name="currentValue"
+            value={formData.currentValue}
+            onChange={handleChange}
+            placeholder="0"
+            prefix="₩"
+          />
+        </div>
+
+        {/* 공급업체 */}
         <div className="space-y-2">
           <label
             htmlFor="supplier"
@@ -111,30 +165,23 @@ const PurchaseInfoSection = ({ formData, handleChange }) => {
             placeholder="공급업체명"
           />
         </div>
-        <DateInput
-          id="warrantyExpiry"
-          name="warrantyExpiry"
-          label="보증 만료일"
-          value={formData.warrantyExpiry}
-          onChange={handleChange}
-        />
-        <NumberInput
-          id="currentValue"
-          name="currentValue"
-          label="현재 가치"
-          value={formData.currentValue}
-          onChange={handleChange}
-          prefix="₩"
-          placeholder="0"
-        />
-        <PhoneInput
-          id="supplierContact"
-          name="supplierContact"
-          label="공급업체 연락처"
-          value={formData.supplierContact || ""}
-          onChange={handleChange}
-          placeholder="02-1234-5678"
-        />
+
+        {/* 공급업체 연락처 */}
+        <div className="space-y-2">
+          <label
+            htmlFor="supplierContact"
+            className="block text-sm font-medium text-foreground"
+          >
+            공급업체 연락처
+          </label>
+          <PhoneInput
+            id="supplierContact"
+            name="supplierContact"
+            value={formData.supplierContact || ""}
+            onChange={handleChange}
+            placeholder="02-1234-5678"
+          />
+        </div>
       </div>
     </div>
   );

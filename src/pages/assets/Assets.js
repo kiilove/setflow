@@ -7,6 +7,8 @@ import { getStatusColorClass } from "../../utils/themeUtils";
 import AssetCard from "./components/AssetCard";
 import useEntityData from "../../hooks/useEntityData";
 import ListPageTemplate from "../../components/common/ListPageTemplate";
+import AssetsEmptyState from "./AssetsEmptyState";
+import StateCard from "../../components/assets/StateCard";
 
 const Assets = () => {
   const navigate = useNavigate();
@@ -32,6 +34,21 @@ const Assets = () => {
   const statuses = [
     ...new Set(assets.map((asset) => asset.status).filter(Boolean)),
   ];
+
+  // 상태별 자산 수 계산
+  const getStatusCount = (status) => {
+    return assets.filter((asset) => asset.status === status).length;
+  };
+
+  // 상태 카드 컴포넌트
+  const StatsComponent = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <StateCard status="사용 중" count={getStatusCount("사용 중")} />
+      <StateCard status="대기 중" count={getStatusCount("대기 중")} />
+      <StateCard status="수리 중" count={getStatusCount("수리 중")} />
+      <StateCard status="폐기" count={getStatusCount("폐기")} />
+    </div>
+  );
 
   // 검색 필터 함수
   const searchFilter = (asset, searchTerm) => {
@@ -251,6 +268,10 @@ const Assets = () => {
       // 추가 설정
       defaultViewMode="table"
       searchPlaceholder="자산명, 카테고리, 위치 또는 담당자 검색..."
+      // EmptyState 컴포넌트
+      emptyStateComponent={<AssetsEmptyState />}
+      // 통계 컴포넌트
+      statsComponent={<StatsComponent />}
     />
   );
 };

@@ -1,6 +1,6 @@
 "use client";
-import { Link, useNavigate } from "react-router-dom";
-import { Plus, Edit, Trash2, Map } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Map } from "lucide-react";
 import useEntityData from "../../hooks/useEntityData";
 import ListPageTemplate from "../../components/common/ListPageTemplate";
 import { useMessageContext } from "../../context/MessageContext";
@@ -41,7 +41,7 @@ const Locations = () => {
     return sortOrder === "asc" ? comparison : -comparison;
   };
 
-  // 테이블 컬럼 정의
+  // 테이블 컬럼 정의 - 좌표값 컬럼 제거
   const columns = [
     {
       id: "name",
@@ -69,46 +69,7 @@ const Locations = () => {
       header: "설명",
       accessor: (location) => location.description || "-",
     },
-    {
-      id: "coordinates",
-      header: "좌표",
-      render: (location) => (
-        <span className="text-xs bg-muted px-2 py-1 rounded-md">
-          {location.latitude}, {location.longitude}
-        </span>
-      ),
-    },
   ];
-
-  // 테이블 액션 버튼 렌더링
-  const renderActions = (location, onDelete) => (
-    <div className="flex space-x-2">
-      <Link
-        to={`/locations/map?id=${location.id}`}
-        className="text-blue-500 hover:text-blue-700 p-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20"
-        title="지도에서 보기"
-      >
-        <Map className="h-4 w-4" />
-      </Link>
-      <Link
-        to={`/locations/edit/${location.id}`}
-        className="text-yellow-500 hover:text-yellow-700 p-1 rounded-md hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
-        title="위치 편집"
-      >
-        <Edit className="h-4 w-4" />
-      </Link>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(location.id, location.name);
-        }}
-        className="text-destructive hover:text-destructive/80 p-1 rounded-md hover:bg-destructive/10"
-        title="위치 삭제"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
-    </div>
-  );
 
   // 헤더 액션 정의
   const headerActions = [
@@ -160,45 +121,9 @@ const Locations = () => {
                 {location.description}
               </p>
             )}
-
-            <div className="mt-3 pt-3 border-t border-border flex justify-between items-center">
-              <span className="text-xs bg-muted px-2 py-1 rounded-md">
-                {location.latitude}, {location.longitude}
-              </span>
-
-              <div className="flex space-x-1">
-                <Link
-                  to={`/locations/map?id=${location.id}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-blue-500 hover:text-blue-700 p-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                  title="지도에서 보기"
-                >
-                  <Map className="h-4 w-4" />
-                </Link>
-                <Link
-                  to={`/locations/edit/${location.id}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-yellow-500 hover:text-yellow-700 p-1.5 rounded-md hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
-                  title="위치 편집"
-                >
-                  <Edit className="h-4 w-4" />
-                </Link>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteLocation(location.id, location.name);
-                  }}
-                  className="text-destructive hover:text-destructive/80 p-1.5 rounded-md hover:bg-destructive/10"
-                  title="위치 삭제"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
-      renderActions={renderActions}
       // 필터 관련
       searchFilter={searchFilter}
       // 정렬 관련

@@ -42,6 +42,23 @@ const UserCard = ({ user, onClick, onDelete, isSelected, onSelect }) => {
     }
   };
 
+  // 직위와 직책 표시
+  const renderPositionAndTitle = () => {
+    if (!user.position && !user.title) return null;
+
+    return (
+      <div className="flex items-center text-sm">
+        <Briefcase className="h-4 w-4 text-amber-500 mr-2" />
+        <span className="text-muted-foreground">
+          {user.position}
+          {user.title && (
+            <span className="text-muted-foreground/70"> · {user.title}</span>
+          )}
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div
       className={`bg-card border rounded-lg shadow-sm overflow-hidden transition-all ${
@@ -90,14 +107,12 @@ const UserCard = ({ user, onClick, onDelete, isSelected, onSelect }) => {
           {/* 이름 및 직책 */}
           <div className="text-center">
             <h3 className="text-lg font-bold text-foreground">{user.name}</h3>
-            <p className="text-sm text-muted-foreground">
-              {user.position} · {user.department}
-            </p>
+            <p className="text-sm text-muted-foreground">{user.department}</p>
           </div>
         </div>
 
         {/* 사용자 정보 */}
-        <div className="p-4 space-y-3">
+        <div className="mt-4 space-y-2">
           <div className="flex items-center text-sm">
             <Mail className="h-4 w-4 text-blue-500 mr-2" />
             <span className="text-muted-foreground truncate">{user.email}</span>
@@ -112,10 +127,7 @@ const UserCard = ({ user, onClick, onDelete, isSelected, onSelect }) => {
             <Building className="h-4 w-4 text-purple-500 mr-2" />
             <span className="text-muted-foreground">{user.department}</span>
           </div>
-          <div className="flex items-center text-sm">
-            <Briefcase className="h-4 w-4 text-amber-500 mr-2" />
-            <span className="text-muted-foreground">{user.position}</span>
-          </div>
+          {renderPositionAndTitle()}
           {user.joinDate && (
             <div className="flex items-center text-sm">
               <Calendar className="h-4 w-4 text-teal-500 mr-2" />
@@ -133,7 +145,7 @@ const UserCard = ({ user, onClick, onDelete, isSelected, onSelect }) => {
         </div>
 
         {/* 작업 버튼 */}
-        <div className="border-t border-border p-3 bg-muted/30 flex justify-end">
+        <div className="mt-4 flex justify-end">
           <button
             onClick={(e) => {
               e.stopPropagation();

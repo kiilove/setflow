@@ -48,7 +48,27 @@ const ListContent = ({
 }) => {
   return (
     <>
-      {viewMode === "table" ? (
+      {data.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="40"
+            height="40"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="mb-2 text-muted-foreground/60"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" x2="12" y1="8" y2="12" />
+            <line x1="12" x2="12.01" y1="16" y2="16" />
+          </svg>
+          {emptyMessage}
+        </div>
+      ) : viewMode === "table" ? (
         <DataTable
           data={data}
           columns={columns}
@@ -79,7 +99,7 @@ const ListContent = ({
           />
 
           {/* 그리드 뷰에서도 페이지네이션 표시 */}
-          {!loading && data.length > 0 && (
+          {data.length > 0 && (
             <div className="mt-4 px-1">
               <div className="flex justify-between items-center">
                 <div className="text-sm text-muted-foreground">

@@ -1,7 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { FaCalendarAlt } from "react-icons/fa";
+import { useState, useEffect, useRef } from "react";
+import {
+  FaCalendarAlt,
+  FaChevronLeft,
+  FaChevronRight,
+  FaCaretDown,
+} from "react-icons/fa";
 
 /**
  * 날짜 입력 컴포넌트 (YYYY-MM-DD 마스킹 포함)
@@ -28,206 +33,284 @@ const DateInput = ({
   disabled = false,
 }) => {
   const [inputValue, setInputValue] = useState("");
-  const [isFocused, setIsFocused] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
+  const calendarRef = useRef(null);
+  const [showYearSelect, setShowYearSelect] = useState(false);
+  const [showMonthSelect, setShowMonthSelect] = useState(false);
+  const [years] = useState(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 100 }, (_, i) => currentYear - 50 + i);
+  });
+  const yearListRef = useRef(null);
 
   // 초기 값 설정
   useEffect(() => {
     if (value) {
-      // ISO 형식(YYYY-MM-DD)인지 확인
-      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        setInputValue(value);
-      } else {
-        // 날짜 객체로 변환 시도
-        try {
-          const date = new Date(value);
-          if (!isNaN(date.getTime())) {
-            const formattedDate = date.toISOString().split("T")[0];
-            setInputValue(formattedDate);
-          }
-        } catch (error) {
-          console.error("Invalid date format:", error);
-          setInputValue("");
-        }
-      }
+      setInputValue(value);
+      setSelectedDate(new Date(value));
     } else {
       setInputValue("");
+      setSelectedDate(null);
     }
   }, [value]);
+
+  // 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target)) {
+        setShowCalendar(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // 연도 선택 시 스크롤 처리
+  useEffect(() => {
+    if (showYearSelect && yearListRef.current) {
+      const currentYear = currentDate.getFullYear();
+      const yearElement = yearListRef.current.querySelector(
+        `[data-year="${currentYear}"]`
+      );
+      if (yearElement) {
+        yearElement.scrollIntoView({ block: "center" });
+      }
+    }
+  }, [showYearSelect, currentDate]);
 
   // 입력값 변경 핸들러
   const handleInputChange = (e) => {
     let input = e.target.value;
+    // 숫자만 허용
+    input = input.replace(/\D/g, "");
+    setInputValue(input);
 
-    // 숫자와 하이픈만 허용
-    input = input.replace(/[^\d-]/g, "");
-
-    // YYYY-MM-DD 형식으로 마스킹
-    if (input.length <= 4) {
-      // 연도 입력 중 - 4자리로 제한
-      const year = input.substring(0, 4);
-      setInputValue(year);
-    } else if (input.length <= 7) {
-      // 월 입력 중
-      const year = input.substring(0, 4);
-      let month = input.substring(5, 7);
-
-      // 월이 1-12 범위를 벗어나면 조정
-      if (month.length === 2) {
-        const monthNum = Number.parseInt(month, 10);
-        if (monthNum > 12) month = "12";
-        else if (monthNum < 1 && month.length === 2) month = "01";
-      }
-
-      setInputValue(`${year}-${month}`);
-    } else {
-      // 일 입력 중
-      const year = input.substring(0, 4);
-      let month = input.substring(5, 7);
-      let day = input.substring(8, 10);
-
-      // 월이 1-12 범위를 벗어나면 조정
-      if (month.length === 2) {
-        const monthNum = Number.parseInt(month, 10);
-        if (monthNum > 12) month = "12";
-        else if (monthNum < 1 && month.length === 2) month = "01";
-      }
-
-      // 일이 1-31 범위를 벗어나면 조정
-      if (day.length === 2) {
-        const dayNum = Number.parseInt(day, 10);
-        const maxDay = new Date(
-          Number.parseInt(year, 10),
-          Number.parseInt(month, 10),
-          0
-        ).getDate();
-        if (dayNum > maxDay) day = maxDay.toString();
-        else if (dayNum < 1 && day.length === 2) day = "01";
-      }
-
-      setInputValue(`${year}-${month}-${day}`);
+    if (onChange) {
+      const event = {
+        target: {
+          name,
+          value: input,
+        },
+      };
+      onChange(event);
     }
   };
 
-  // 키 입력 핸들러 - 년도 4자리 제한을 위해 추가
-  const handleKeyDown = (e) => {
-    const cursorPosition = e.target.selectionStart;
-
-    // 년도 부분(처음 4자리)에서 이미 4자리가 입력된 상태에서 추가 숫자 입력 방지
-    if (
-      cursorPosition <= 4 &&
-      inputValue.substring(0, 4).length >= 4 &&
-      /\d/.test(e.key) &&
-      !e.ctrlKey &&
-      !e.metaKey &&
-      !e.altKey
-    ) {
-      // 선택된 텍스트가 있는 경우는 허용 (덮어쓰기)
-      if (e.target.selectionStart === e.target.selectionEnd) {
-        e.preventDefault();
-      }
-    }
-
-    // 하이픈(-) 자동 추가
-    if (inputValue.length === 4 && /\d/.test(e.key) && cursorPosition === 4) {
-      setInputValue(`${inputValue}-${e.key}`);
-      e.preventDefault();
-
-      // 다음 위치로 커서 이동을 위한 setTimeout
-      setTimeout(() => {
-        e.target.setSelectionRange(6, 6);
-      }, 0);
-    } else if (
-      inputValue.length === 7 &&
-      /\d/.test(e.key) &&
-      cursorPosition === 7
-    ) {
-      setInputValue(`${inputValue}-${e.key}`);
-      e.preventDefault();
-
-      // 다음 위치로 커서 이동을 위한 setTimeout
-      setTimeout(() => {
-        e.target.setSelectionRange(9, 9);
-      }, 0);
-    }
-  };
-
-  // 포커스 이벤트 핸들러
-  const handleFocus = () => {
-    setIsFocused(true);
-  };
-
-  // 블러 이벤트 핸들러
+  // 포커스가 벗어날 때 처리
   const handleBlur = () => {
-    setIsFocused(false);
+    const input = inputValue.replace(/\D/g, "");
 
-    // 유효한 날짜인지 확인
-    if (inputValue) {
-      const datePattern = /^(\d{4})-(\d{2})-(\d{2})$/;
-      const match = inputValue.match(datePattern);
+    if (input.length === 8) {
+      const formattedDate = `${input.substring(0, 4)}-${input.substring(
+        4,
+        6
+      )}-${input.substring(6, 8)}`;
+      setInputValue(formattedDate);
 
-      if (match) {
-        const year = Number.parseInt(match[1], 10);
-        const month = Number.parseInt(match[2], 10);
-        const day = Number.parseInt(match[3], 10);
-
-        // 유효한 날짜인지 확인
-        const date = new Date(year, month - 1, day);
-        const isValidDate =
-          date.getFullYear() === year &&
-          date.getMonth() === month - 1 &&
-          date.getDate() === day;
-
-        if (isValidDate) {
-          // 날짜가 유효하면 onChange 이벤트 발생
-          if (onChange) {
-            const event = {
-              target: {
-                name,
-                value: inputValue,
-              },
-            };
-            onChange(event);
-          }
-        } else {
-          // 유효하지 않은 날짜면 초기화
-          setInputValue("");
-          if (onChange) {
-            const event = {
-              target: {
-                name,
-                value: "",
-              },
-            };
-            onChange(event);
-          }
-        }
-      } else {
-        // 패턴이 맞지 않으면 초기화
-        setInputValue("");
-        if (onChange) {
-          const event = {
-            target: {
-              name,
-              value: "",
-            },
-          };
-          onChange(event);
-        }
+      if (onChange) {
+        const event = {
+          target: {
+            name,
+            value: formattedDate,
+          },
+        };
+        onChange(event);
       }
     }
   };
 
-  // 날짜 입력 필드 클릭 핸들러
-  const handleDateInputClick = (e) => {
+  // 달력 아이콘 클릭 핸들러
+  const handleCalendarClick = (e) => {
+    e.preventDefault();
     e.stopPropagation();
+    setShowCalendar(!showCalendar);
+  };
 
-    // 다른 열린 달력 닫기
-    const dateInputs = document.querySelectorAll('input[type="date"]');
-    dateInputs.forEach((input) => {
-      if (input !== e.target) {
-        input.blur();
+  // 날짜 선택 핸들러
+  const handleDateSelect = (date, isCurrentMonth) => {
+    if (!isCurrentMonth) {
+      // 다른 달의 날짜를 선택한 경우 해당 달로 이동하고 날짜 선택
+      setCurrentDate(new Date(date.getFullYear(), date.getMonth(), 1));
+      setSelectedDate(date);
+      // 로컬 시간을 사용하여 날짜 포맷팅
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const formattedDate = `${year}-${month}-${day}`;
+      setInputValue(formattedDate);
+      setShowCalendar(false);
+
+      if (onChange) {
+        const event = {
+          target: {
+            name,
+            value: formattedDate,
+          },
+        };
+        onChange(event);
       }
-    });
+      return;
+    }
+
+    // 현재 달의 날짜 선택
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const formattedDate = `${year}-${month}-${day}`;
+    setInputValue(formattedDate);
+    setSelectedDate(date);
+    setShowCalendar(false);
+
+    if (onChange) {
+      const event = {
+        target: {
+          name,
+          value: formattedDate,
+        },
+      };
+      onChange(event);
+    }
+  };
+
+  // 이전 달로 이동
+  const prevMonth = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentDate(
+      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+    );
+  };
+
+  // 다음 달로 이동
+  const nextMonth = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentDate(
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+    );
+  };
+
+  // 달력 날짜 생성
+  const getCalendarDays = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const days = [];
+
+    // 이전 달의 날짜들
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    const firstDayOfWeek = firstDay.getDay();
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      days.push({
+        date: new Date(year, month - 1, prevMonthLastDay - i),
+        isCurrentMonth: false,
+      });
+    }
+
+    // 현재 달의 날짜들
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      days.push({
+        date: new Date(year, month, i),
+        isCurrentMonth: true,
+      });
+    }
+
+    // 다음 달의 날짜들
+    const remainingDays = 42 - days.length; // 6주 * 7일 = 42
+    for (let i = 1; i <= remainingDays; i++) {
+      days.push({
+        date: new Date(year, month + 1, i),
+        isCurrentMonth: false,
+      });
+    }
+
+    return days;
+  };
+
+  const days = getCalendarDays();
+  const monthNames = [
+    "1월",
+    "2월",
+    "3월",
+    "4월",
+    "5월",
+    "6월",
+    "7월",
+    "8월",
+    "9월",
+    "10월",
+    "11월",
+    "12월",
+  ];
+  const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+
+  // 취소 버튼 핸들러
+  const handleCancel = () => {
+    setShowCalendar(false);
+  };
+
+  const handleKeyDown = (e) => {
+    // 숫자와 하이픈만 허용
+    if (
+      !/[\d-]/.test(e.key) &&
+      !["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"].includes(e.key)
+    ) {
+      e.preventDefault();
+      return;
+    }
+
+    // 연도 입력 제한 (4자리)
+    if (
+      e.target.value.length >= 4 &&
+      !["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"].includes(e.key)
+    ) {
+      const cursorPosition = e.target.selectionStart;
+      if (cursorPosition <= 4) {
+        e.preventDefault();
+        return;
+      }
+    }
+
+    // 자동 하이픈 추가
+    if (e.key !== "Backspace" && e.key !== "Delete") {
+      const value = e.target.value;
+      if (value.length === 4 || value.length === 7) {
+        e.target.value = value + "-";
+      }
+    }
+  };
+
+  // 연도 선택 핸들러
+  const handleYearSelect = (year) => {
+    setCurrentDate(new Date(year, currentDate.getMonth(), 1));
+    setShowYearSelect(false);
+  };
+
+  // 월 선택 핸들러
+  const handleMonthSelect = (month) => {
+    setCurrentDate(new Date(currentDate.getFullYear(), month, 1));
+    setShowMonthSelect(false);
+  };
+
+  // 연도/월 표시 영역 클릭 핸들러
+  const handleYearClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowYearSelect(!showYearSelect);
+    setShowMonthSelect(false);
+  };
+
+  const handleMonthClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowMonthSelect(!showMonthSelect);
+    setShowYearSelect(false);
   };
 
   return (
@@ -235,30 +318,172 @@ const DateInput = ({
       {label && (
         <label
           htmlFor={id}
-          className="block text-sm font-medium text-muted-foreground mb-1"
+          className="block text-sm font-medium text-foreground mb-1"
         >
           {label} {required && <span className="text-destructive">*</span>}
         </label>
       )}
       <div className="relative">
-        <input
-          type={isFocused ? "date" : "text"}
-          id={id}
-          name={name}
-          value={inputValue}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          onClick={handleDateInputClick}
-          required={required}
-          placeholder={placeholder}
-          disabled={disabled}
-          className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary pr-10"
-        />
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-          <FaCalendarAlt className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onBlur={handleBlur}
+            placeholder="YYYY-MM-DD"
+            className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+          />
+          <button
+            onClick={handleCalendarClick}
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <FaCalendarAlt className="w-5 h-5" />
+          </button>
         </div>
+
+        {showCalendar && (
+          <div
+            ref={calendarRef}
+            className="absolute top-full left-0 mt-2 w-[320px] bg-background border border-input rounded-lg shadow-lg overflow-hidden z-50"
+          >
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleYearClick}
+                    className="px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors flex items-center gap-1"
+                  >
+                    {currentDate.getFullYear()}년
+                    <FaCaretDown className="w-3 h-3 text-muted-foreground" />
+                  </button>
+                  <button
+                    onClick={handleMonthClick}
+                    className="px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors flex items-center gap-1"
+                  >
+                    {monthNames[currentDate.getMonth()]}
+                    <FaCaretDown className="w-3 h-3 text-muted-foreground" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={prevMonth}
+                    className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                  >
+                    <FaChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={nextMonth}
+                    className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                  >
+                    <FaChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {showYearSelect && (
+                <div
+                  ref={yearListRef}
+                  className="absolute top-[72px] left-4 w-[120px] bg-background border border-input rounded-lg shadow-lg max-h-[200px] overflow-y-auto z-[60]"
+                >
+                  {years.map((year) => (
+                    <button
+                      key={year}
+                      data-year={year}
+                      onClick={() => handleYearSelect(year)}
+                      className={`w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors ${
+                        year === currentDate.getFullYear()
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {year}년
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {showMonthSelect && (
+                <div className="absolute top-[72px] left-[140px] w-[160px] bg-background border border-input rounded-lg shadow-lg p-2 z-[60]">
+                  <div className="grid grid-cols-3 gap-2">
+                    {monthNames.map((month, index) => (
+                      <button
+                        key={month}
+                        onClick={() => handleMonthSelect(index)}
+                        className={`p-2 text-sm rounded-md transition-colors ${
+                          index === currentDate.getMonth()
+                            ? "bg-primary text-primary-foreground"
+                            : "text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {month}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {dayNames.map((day) => (
+                  <div
+                    key={day}
+                    className={`text-center text-sm font-medium py-1 ${
+                      day === "일"
+                        ? "text-red-500"
+                        : day === "토"
+                        ? "text-blue-500"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {day}
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7 gap-1">
+                {days.map(({ date, isCurrentMonth }, index) => {
+                  const isSelected =
+                    selectedDate &&
+                    date.getDate() === selectedDate.getDate() &&
+                    date.getMonth() === selectedDate.getMonth() &&
+                    date.getFullYear() === selectedDate.getFullYear();
+
+                  const dayColor =
+                    date.getDay() === 0
+                      ? "text-red-500"
+                      : date.getDay() === 6
+                      ? "text-blue-500"
+                      : "text-foreground";
+
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => handleDateSelect(date, isCurrentMonth)}
+                      className={`p-2 text-sm rounded-md transition-colors ${
+                        isCurrentMonth
+                          ? isSelected
+                            ? "bg-primary text-primary-foreground"
+                            : `${dayColor} hover:bg-muted`
+                          : "text-muted-foreground/50 hover:bg-muted/50"
+                      }`}
+                    >
+                      {date.getDate()}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="border-t border-input p-2 flex justify-end">
+              <button
+                onClick={handleCancel}
+                className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -7,28 +7,37 @@ import UserForm from "../../components/users/UserForm";
 import { useFirestore } from "../../hooks/useFirestore";
 import { useMessageContext } from "../../context/MessageContext";
 
+// useFirestore 훅을 컴포넌트 최상위 레벨에서 호출하도록 수정
 const UsersEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getDocument, updateDocument } = useFirestore("users");
+  const { getCollection: getDepartments } = useFirestore("departments");
+  const { getCollection: getLocations } = useFirestore("locations");
   const { showSuccess, showError } = useMessageContext();
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [departments, setDepartments] = useState([]);
+  const [locations, setLocations] = useState([]);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await getDocument(id);
+        const userData = await getDocument(id);
+        const departmentsData = await getDepartments();
+        const locationsData = await getLocations();
 
-        if (!data) {
+        if (!userData) {
           throw new Error("사용자를 찾을 수 없습니다.");
         }
 
-        setUser(data);
+        setUser(userData);
+        setDepartments(departmentsData);
+        setLocations(locationsData);
       } catch (err) {
         console.error("사용자 정보를 불러오는 중 오류가 발생했습니다:", err);
         setError(err.message || "사용자 정보를 불러올 수 없습니다.");
@@ -37,8 +46,8 @@ const UsersEdit = () => {
       }
     };
 
-    fetchUser();
-  }, [id, getDocument]);
+    fetchData();
+  }, [id, getDocument, getDepartments, getLocations]);
 
   const handleSubmit = async (formData) => {
     try {
@@ -98,7 +107,13 @@ const UsersEdit = () => {
               <span className="ml-2 text-muted-foreground">처리 중...</span>
             </div>
           ) : (
-            <UserForm user={user} onSubmit={handleSubmit} isEditing={true} />
+            <UserForm
+              user={user}
+              onSubmit={handleSubmit}
+              isEditing={true}
+              departments={departments}
+              locations={locations}
+            />
           )}
         </div>
       </div>

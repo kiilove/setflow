@@ -35,13 +35,17 @@ const ListLayout = ({
         {filter}
 
         {/* 빈 상태 (데이터가 없고 로딩 중이 아닌 경우) */}
-        {itemCount === 0 && !loading && emptyState}
+        {itemCount === 0 && !loading ? (
+          emptyState
+        ) : (
+          <>
+            {/* 컨텐츠 */}
+            {content}
 
-        {/* 컨텐츠 */}
-        {content}
-
-        {/* 페이지네이션 */}
-        {pagination}
+            {/* 페이지네이션 */}
+            {pagination}
+          </>
+        )}
       </div>
     </PageContainer>
   );
