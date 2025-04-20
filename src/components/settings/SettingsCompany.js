@@ -1,234 +1,180 @@
 "use client";
 
-import { useState } from "react";
-import { Building, Save, CheckCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useFirestore } from "../../hooks/useFirestore";
+import { useMessageContext } from "../../context/MessageContext";
+import { Building2 } from "lucide-react";
 
-const SettingsCompany = () => {
-  const [companySettings, setCompanySettings] = useState({
-    companyName: "Setflow Inc.",
-    businessRegistrationNumber: "123-45-67890",
-    representativeName: "홍길동",
-    companyAddress: "서울특별시 강남구 테헤란로 123",
-    companyPhone: "02-1234-5678",
-    companyEmail: "info@setflow.com",
-    industry: "IT 서비스",
-    establishmentDate: "2020-01-01",
+const SettingsCompany = ({ onDataChange, initialData }) => {
+  const { getDocument } = useFirestore("settings");
+  const { showError } = useMessageContext();
+  const [loading, setLoading] = useState(true);
+  const [company, setCompany] = useState({
+    name: "",
+    businessRegistrationNumber: "",
+    representativeName: "",
+    industry: "",
+    address: "",
+    phone: "",
+    email: "",
+    website: "",
   });
-  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // 설정 변경 핸들러
-  const handleSettingChange = (e) => {
-    const { name, value } = e.target;
-    setCompanySettings((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  useEffect(() => {
+    const loadCompanySettings = async () => {
+      try {
+        setLoading(true);
+        const data = await getDocument("company");
+        if (data) {
+          setCompany(data);
+          if (onDataChange) {
+            onDataChange(data);
+          }
+        }
+      } catch (error) {
+        console.error("회사 정보 로딩 중 오류 발생:", error);
+        showError(
+          "회사 정보 로딩 실패",
+          "회사 정보를 불러오는데 실패했습니다."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (initialData) {
+      setCompany(initialData);
+    } else {
+      loadCompanySettings();
+    }
+  }, [initialData]);
+
+  const handleChange = (field, value) => {
+    const newData = { ...company, [field]: value };
+    setCompany(newData);
+    if (onDataChange) {
+      onDataChange(newData);
+    }
   };
 
-  // 설정 저장 핸들러
-  const handleSaveSettings = () => {
-    // 실제 구현에서는 API 호출로 설정 저장
-    console.log("Saving settings:", companySettings);
-
-    // 성공 메시지 표시
-    setSaveSuccess(true);
-    setTimeout(() => {
-      setSaveSuccess(false);
-    }, 3000);
-  };
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* 설정 저장 성공 메시지 */}
-      {saveSuccess && (
-        <div className="mb-6 p-4 rounded-md bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-300 flex items-center">
-          <CheckCircle className="mr-2 h-4 w-4" />
-          <span>설정이 성공적으로 저장되었습니다.</span>
+      <h3 className="text-lg font-medium flex items-center">
+        <Building2 className="mr-2 h-5 w-5" />
+        회사 기본 정보 설정
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium mb-1">
+            회사명
+          </label>
+          <input
+            id="name"
+            type="text"
+            value={company.name}
+            onChange={(e) => handleChange("name", e.target.value)}
+            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          />
         </div>
-      )}
-
-      <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border theme-transition">
-        <div className="p-4 border-b border-border theme-transition">
-          <h3 className="text-lg font-medium text-foreground theme-transition flex items-center">
-            <Building className="mr-2 h-5 w-5 text-blue-500" />
-            회사 설정
-          </h3>
+        <div>
+          <label
+            htmlFor="businessRegistrationNumber"
+            className="block text-sm font-medium mb-1"
+          >
+            사업자등록번호
+          </label>
+          <input
+            id="businessRegistrationNumber"
+            type="text"
+            value={company.businessRegistrationNumber}
+            onChange={(e) =>
+              handleChange("businessRegistrationNumber", e.target.value)
+            }
+            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          />
         </div>
-        <div className="p-4">
-          <form>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* 기본 정보 */}
-              <div className="space-y-4">
-                <h4 className="text-md font-medium text-foreground theme-transition">
-                  기본 정보
-                </h4>
-
-                <div>
-                  <label
-                    htmlFor="companyName"
-                    className="block text-sm font-medium text-muted-foreground theme-transition mb-1"
-                  >
-                    회사명
-                  </label>
-                  <input
-                    type="text"
-                    id="companyName"
-                    name="companyName"
-                    value={companySettings.companyName}
-                    onChange={handleSettingChange}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="businessRegistrationNumber"
-                    className="block text-sm font-medium text-muted-foreground theme-transition mb-1"
-                  >
-                    사업자등록번호
-                  </label>
-                  <input
-                    type="text"
-                    id="businessRegistrationNumber"
-                    name="businessRegistrationNumber"
-                    value={companySettings.businessRegistrationNumber}
-                    onChange={handleSettingChange}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="representativeName"
-                    className="block text-sm font-medium text-muted-foreground theme-transition mb-1"
-                  >
-                    대표자명
-                  </label>
-                  <input
-                    type="text"
-                    id="representativeName"
-                    name="representativeName"
-                    value={companySettings.representativeName}
-                    onChange={handleSettingChange}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
-                  />
-                </div>
-              </div>
-
-              {/* 연락처 정보 */}
-              <div className="space-y-4">
-                <h4 className="text-md font-medium text-foreground theme-transition">
-                  연락처 정보
-                </h4>
-
-                <div>
-                  <label
-                    htmlFor="companyAddress"
-                    className="block text-sm font-medium text-muted-foreground theme-transition mb-1"
-                  >
-                    회사 주소
-                  </label>
-                  <input
-                    type="text"
-                    id="companyAddress"
-                    name="companyAddress"
-                    value={companySettings.companyAddress}
-                    onChange={handleSettingChange}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="companyPhone"
-                    className="block text-sm font-medium text-muted-foreground theme-transition mb-1"
-                  >
-                    전화번호
-                  </label>
-                  <input
-                    type="tel"
-                    id="companyPhone"
-                    name="companyPhone"
-                    value={companySettings.companyPhone}
-                    onChange={handleSettingChange}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="companyEmail"
-                    className="block text-sm font-medium text-muted-foreground theme-transition mb-1"
-                  >
-                    이메일
-                  </label>
-                  <input
-                    type="email"
-                    id="companyEmail"
-                    name="companyEmail"
-                    value={companySettings.companyEmail}
-                    onChange={handleSettingChange}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 추가 정보 */}
-            <div className="mt-6 space-y-4">
-              <h4 className="text-md font-medium text-foreground theme-transition">
-                추가 정보
-              </h4>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label
-                    htmlFor="industry"
-                    className="block text-sm font-medium text-muted-foreground theme-transition mb-1"
-                  >
-                    업종
-                  </label>
-                  <input
-                    type="text"
-                    id="industry"
-                    name="industry"
-                    value={companySettings.industry}
-                    onChange={handleSettingChange}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="establishmentDate"
-                    className="block text-sm font-medium text-muted-foreground theme-transition mb-1"
-                  >
-                    설립일
-                  </label>
-                  <input
-                    type="date"
-                    id="establishmentDate"
-                    name="establishmentDate"
-                    value={companySettings.establishmentDate}
-                    onChange={handleSettingChange}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 저장 버튼 */}
-            <div className="mt-6 flex justify-end">
-              <button
-                type="button"
-                onClick={handleSaveSettings}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-              >
-                <Save className="mr-2 -ml-1 h-4 w-4" />
-                설정 저장
-              </button>
-            </div>
-          </form>
+        <div>
+          <label
+            htmlFor="representativeName"
+            className="block text-sm font-medium mb-1"
+          >
+            대표자명
+          </label>
+          <input
+            id="representativeName"
+            type="text"
+            value={company.representativeName}
+            onChange={(e) => handleChange("representativeName", e.target.value)}
+            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div>
+          <label htmlFor="industry" className="block text-sm font-medium mb-1">
+            업종
+          </label>
+          <input
+            id="industry"
+            type="text"
+            value={company.industry}
+            onChange={(e) => handleChange("industry", e.target.value)}
+            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div>
+          <label htmlFor="address" className="block text-sm font-medium mb-1">
+            주소
+          </label>
+          <input
+            id="address"
+            type="text"
+            value={company.address}
+            onChange={(e) => handleChange("address", e.target.value)}
+            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div>
+          <label htmlFor="phone" className="block text-sm font-medium mb-1">
+            전화번호
+          </label>
+          <input
+            id="phone"
+            type="text"
+            value={company.phone}
+            onChange={(e) => handleChange("phone", e.target.value)}
+            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium mb-1">
+            이메일
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={company.email}
+            onChange={(e) => handleChange("email", e.target.value)}
+            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div>
+          <label htmlFor="website" className="block text-sm font-medium mb-1">
+            웹사이트
+          </label>
+          <input
+            id="website"
+            type="url"
+            value={company.website}
+            onChange={(e) => handleChange("website", e.target.value)}
+            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          />
         </div>
       </div>
     </div>

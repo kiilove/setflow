@@ -1,209 +1,252 @@
 "use client";
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useMessageContext } from "../../context/MessageContext";
 import { getButtonVariantClass } from "../../utils/themeUtils";
-import { Mail, Lock, LogIn, AlertCircle } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  OAuthProvider,
+} from "firebase/auth";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { showError } = useMessageContext();
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    rememberMe: false,
   });
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [loginError, setLoginError] = useState("");
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     }));
-
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: null }));
-    }
-
-    if (loginError) {
-      setLoginError("");
-    }
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.email.trim()) {
-      newErrors.email = "이메일을 입력해주세요.";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "유효한 이메일 형식이 아닙니다.";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "비밀번호를 입력해주세요.";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
+  const handleEmailLogin = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) return;
+    if (!formData.email || !formData.password) {
+      showError("입력 오류", "이메일과 비밀번호를 모두 입력해주세요.");
+      return;
+    }
 
     try {
       setLoading(true);
-
-      // 가상의 계정 정보 생성
-      const userAccount = {
-        id: 1,
-        email: formData.email,
-        name: formData.email.split("@")[0], // 이메일에서 사용자 이름 추출
-        role: "admin",
-        token: "sample_jwt_token_" + Math.random().toString(36).substring(2),
-        lastLogin: new Date().toISOString(),
-      };
-
-      // 로컬 스토리지에 인증 정보 저장
-      localStorage.setItem("authUser", JSON.stringify(userAccount));
-
-      // 로그인 성공 시뮬레이션
-      setTimeout(() => {
-        setLoading(false);
-        navigate("/dashboard"); // 로그인 성공 시 대시보드로 이동
-      }, 1000);
+      const auth = getAuth();
+      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      navigate("/");
     } catch (error) {
-      console.error("로그인 중 오류 발생:", error);
+      console.error("로그인 오류:", error);
+      let errorMessage = "로그인에 실패했습니다.";
+      switch (error.code) {
+        case "auth/user-not-found":
+          errorMessage = "존재하지 않는 이메일입니다.";
+          break;
+        case "auth/wrong-password":
+          errorMessage = "잘못된 비밀번호입니다.";
+          break;
+        case "auth/invalid-email":
+          errorMessage = "유효하지 않은 이메일 형식입니다.";
+          break;
+        case "auth/too-many-requests":
+          errorMessage =
+            "너무 많은 시도가 있었습니다. 잠시 후 다시 시도해주세요.";
+          break;
+      }
+      showError("로그인 실패", errorMessage);
+    } finally {
       setLoading(false);
-      setLoginError("로그인 중 오류가 발생했습니다. 다시 시도해주세요.");
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setLoading(true);
+      const auth = getAuth();
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      navigate("/");
+    } catch (error) {
+      console.error("구글 로그인 오류:", error);
+      showError("구글 로그인 실패", "구글 로그인에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNaverLogin = async () => {
+    try {
+      setLoading(true);
+      const auth = getAuth();
+      const provider = new OAuthProvider("naver.com");
+      await signInWithPopup(auth, provider);
+      navigate("/");
+    } catch (error) {
+      console.error("네이버 로그인 오류:", error);
+      showError("네이버 로그인 실패", "네이버 로그인에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKakaoLogin = async () => {
+    try {
+      setLoading(true);
+      const auth = getAuth();
+      const provider = new OAuthProvider("kakao.com");
+      await signInWithPopup(auth, provider);
+      navigate("/");
+    } catch (error) {
+      console.error("카카오 로그인 오류:", error);
+      showError("카카오 로그인 실패", "카카오 로그인에 실패했습니다.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md p-8 space-y-8 bg-card rounded-lg shadow-lg border border-border">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">로그인</h1>
-          <p className="mt-2 text-muted-foreground">
-            계정에 로그인하여 시작하세요
-          </p>
-        </div>
-
-        {loginError && (
-          <div className="bg-destructive/10 text-destructive p-3 rounded-md flex items-start">
-            <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-            <p>{loginError}</p>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md">
+        <div className="bg-card text-card-foreground rounded-lg shadow-lg p-8">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold mb-2">로그인</h1>
+            <p className="text-muted-foreground">
+              계정이 없으신가요?{" "}
+              <Link
+                to="/auth/register"
+                className="text-primary hover:underline"
+              >
+                회원가입
+              </Link>
+            </p>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1">
-                <span className="flex items-center">
-                  <Mail className="mr-1 text-primary h-4 w-4" />
-                  이메일
-                </span>
+          <form onSubmit={handleEmailLogin} className="space-y-4">
+            <div className="space-y-2">
+              <label
+                htmlFor="email"
+                className="text-sm font-medium text-foreground"
+              >
+                이메일
               </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  errors.email ? "border-destructive" : "border-input"
-                } bg-background focus:outline-none focus:ring-2 focus:ring-primary`}
-                placeholder="name@company.com"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-destructive">{errors.email}</p>
-              )}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="이메일을 입력하세요"
+                />
+              </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <label
                 htmlFor="password"
-                className="block text-sm font-medium mb-1"
+                className="text-sm font-medium text-foreground"
               >
-                <span className="flex items-center">
-                  <Lock className="mr-1 text-primary h-4 w-4" />
-                  비밀번호
-                </span>
+                비밀번호
               </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  errors.password ? "border-destructive" : "border-input"
-                } bg-background focus:outline-none focus:ring-2 focus:ring-primary`}
-                placeholder="••••••••"
-              />
-              {errors.password && (
-                <p className="mt-1 text-sm text-destructive">
-                  {errors.password}
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-muted-foreground" />
+                </div>
                 <input
-                  type="checkbox"
-                  id="rememberMe"
-                  name="rememberMe"
-                  checked={formData.rememberMe}
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
                   onChange={handleChange}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  className="w-full pl-10 pr-10 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="비밀번호를 입력하세요"
                 />
-                <label
-                  htmlFor="rememberMe"
-                  className="ml-2 block text-sm text-foreground"
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
-                  로그인 상태 유지
-                </label>
-              </div>
-              <div className="text-sm">
-                <a href="#" className="text-primary hover:text-primary/80">
-                  비밀번호 찾기
-                </a>
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </button>
               </div>
             </div>
-          </div>
 
-          <div>
             <button
               type="submit"
               disabled={loading}
-              className={`w-full flex justify-center items-center px-4 py-2 rounded-md ${getButtonVariantClass(
+              className={`w-full py-2 px-4 rounded-md ${getButtonVariantClass(
                 "primary"
-              )}`}
+              )} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  로그인 중...
-                </>
+                <Loader2 className="h-5 w-5 animate-spin mx-auto" />
               ) : (
-                <>
-                  <LogIn className="mr-2 h-4 w-4" />
-                  로그인
-                </>
+                "로그인"
               )}
             </button>
-          </div>
-        </form>
+          </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            테스트 계정: admin@example.com / password123
-          </p>
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-card text-muted-foreground">
+                  또는 다음으로 로그인
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              <button
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className={`flex items-center justify-center py-2 px-4 rounded-md ${getButtonVariantClass(
+                  "outline"
+                )} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <img src="/google.svg" alt="Google" className="h-5 w-5 mr-2" />
+                Google
+              </button>
+              <button
+                onClick={handleNaverLogin}
+                disabled={loading}
+                className={`flex items-center justify-center py-2 px-4 rounded-md ${getButtonVariantClass(
+                  "outline"
+                )} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <img src="/naver.svg" alt="Naver" className="h-5 w-5 mr-2" />
+                Naver
+              </button>
+              <button
+                onClick={handleKakaoLogin}
+                disabled={loading}
+                className={`flex items-center justify-center py-2 px-4 rounded-md ${getButtonVariantClass(
+                  "outline"
+                )} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <img src="/kakao.svg" alt="Kakao" className="h-5 w-5 mr-2" />
+                Kakao
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

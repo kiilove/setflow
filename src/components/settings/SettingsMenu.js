@@ -10,6 +10,8 @@ import {
   Building,
   Briefcase,
   IdCard,
+  Building2,
+  Wrench,
 } from "lucide-react";
 
 const SettingsMenu = () => {
@@ -120,6 +122,21 @@ const SettingsMenu = () => {
             >
               <Users className="h-4 w-4" />
               <span>관리자 설정</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/settings/initial-setup"
+              className={({ isActive }) =>
+                `flex items-center px-4 py-2 rounded-md ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground hover:bg-muted"
+                }`
+              }
+            >
+              <Wrench className="mr-2 h-4 w-4" />
+              초기 설정
             </NavLink>
           </li>
         </ul>

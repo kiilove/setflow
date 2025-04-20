@@ -10,6 +10,7 @@ import SettingsBackup from "../../components/settings/SettingsBackup";
 import SettingsAdmin from "../../components/settings/SettingsAdmin";
 import SettingsPositions from "../../components/settings/SettingsPositions";
 import SettingsEmployeeFormat from "../../components/settings/SettingsEmployeeFormat";
+import InitialSetup from "../../components/settings/InitialSetup";
 
 const Settings = () => {
   const location = useLocation();
@@ -48,6 +49,7 @@ const Settings = () => {
             <Route path="/notifications" element={<SettingsNotifications />} />
             <Route path="/backup" element={<SettingsBackup />} />
             <Route path="/admin" element={<SettingsAdmin />} />
+            <Route path="/initial-setup" element={<InitialSetup />} />
           </Routes>
         </div>
       </div>
