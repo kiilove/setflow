@@ -23,7 +23,7 @@ import DateInput from "../common/DateInput";
 import EmployeeIdInput from "../common/EmployeeIdInput";
 import ProfileImageUpload from "./ProfileImageUpload";
 import useImageUpload from "../../hooks/useImageUpload";
-import { deleteFileFromStorage } from "../../hooks/storageUtils";
+import { deleteFileFromStorage } from "../../utils/fileUtils";
 import { db } from "../../firebase/config";
 import { doc, getDoc } from "firebase/firestore";
 

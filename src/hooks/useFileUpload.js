@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { uploadToStorage } from "./storageUtils";
+import { uploadToStorage } from "../utils/fileUtils";
 
 /**
  * 파일 업로드를 위한 커스텀 훅

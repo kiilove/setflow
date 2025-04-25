@@ -72,11 +72,52 @@ const Login = () => {
       setLoading(true);
       const auth = getAuth();
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      navigate("/");
+
+      // 구글 로그인 팝업 설정
+      provider.setCustomParameters({
+        prompt: "select_account",
+      });
+
+      const result = await signInWithPopup(auth, provider);
+      console.log("구글 로그인 성공:", result);
+
+      // 사용자 정보 확인
+      if (result.user) {
+        console.log("사용자 정보:", result.user);
+        // 로컬 스토리지에 사용자 정보 저장
+        localStorage.setItem("authUser", JSON.stringify(result.user));
+        // 홈페이지로 리다이렉트
+        window.location.href = "/";
+      } else {
+        console.error("사용자 정보가 없습니다.");
+        showError("로그인 실패", "사용자 정보를 가져오는데 실패했습니다.");
+      }
     } catch (error) {
       console.error("구글 로그인 오류:", error);
-      showError("구글 로그인 실패", "구글 로그인에 실패했습니다.");
+      let errorMessage = "구글 로그인에 실패했습니다.";
+
+      switch (error.code) {
+        case "auth/popup-closed-by-user":
+          errorMessage = "로그인 팝업이 사용자에 의해 닫혔습니다.";
+          break;
+        case "auth/cancelled-popup-request":
+          errorMessage = "로그인 팝업이 취소되었습니다.";
+          break;
+        case "auth/popup-blocked":
+          errorMessage =
+            "브라우저가 팝업을 차단했습니다. 팝업 차단을 해제해주세요.";
+          break;
+        case "auth/network-request-failed":
+          errorMessage =
+            "네트워크 연결에 문제가 있습니다. 인터넷 연결을 확인해주세요.";
+          break;
+        case "auth/operation-not-allowed":
+          errorMessage =
+            "구글 로그인이 현재 비활성화되어 있습니다. 관리자에게 문의해주세요.";
+          break;
+      }
+
+      showError("구글 로그인 실패", errorMessage);
     } finally {
       setLoading(false);
     }

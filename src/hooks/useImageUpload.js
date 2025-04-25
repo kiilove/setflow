@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 // 임포트 경로 수정
-import { uploadToStorage } from "./storageUtils";
+import { uploadToStorage } from "../utils/fileUtils";
 
 /**
  * 이미지 업로드 및 압축을 위한 커스텀 훅
