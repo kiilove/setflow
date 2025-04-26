@@ -2,64 +2,129 @@
 
 import { useState, useEffect } from "react";
 import { useFirestore } from "../../hooks/useFirestore";
-import { useMessageContext } from "../../context/MessageContext";
-import { Building2 } from "lucide-react";
+import { Building2, Save } from "lucide-react";
+import ModalMessage from "../common/ModalMessage";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { db } from "../../firebase/config";
 
-const SettingsCompany = ({ onDataChange, initialData }) => {
-  const { getDocument } = useFirestore("settings");
-  const { showError } = useMessageContext();
+const SettingsCompany = () => {
+  const { updateDocument } = useFirestore("settings");
+
   const [loading, setLoading] = useState(true);
   const [company, setCompany] = useState({
     name: "",
-    businessRegistrationNumber: "",
-    representativeName: "",
-    industry: "",
-    address: "",
+    businessNumber: "",
+    representative: "",
+    businessType: "",
+    businessCategory: "",
     phone: "",
-    email: "",
-    website: "",
+    fax: "",
+    address: {
+      postcode: "",
+      roadAddress: "",
+      detailAddress: "",
+    },
   });
+  const [error, setError] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isNew, setIsNew] = useState(true);
 
   useEffect(() => {
-    const loadCompanySettings = async () => {
-      try {
-        setLoading(true);
-        const data = await getDocument("company");
-        if (data) {
-          setCompany(data);
-          if (onDataChange) {
-            onDataChange(data);
-          }
-        }
-      } catch (error) {
-        console.error("회사 정보 로딩 중 오류 발생:", error);
-        showError(
-          "회사 정보 로딩 실패",
-          "회사 정보를 불러오는데 실패했습니다."
-        );
-      } finally {
-        setLoading(false);
-      }
+    loadCompany();
+    // 카카오 주소 API 스크립트 로드
+    const script = document.createElement("script");
+    script.src =
+      "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+    script.async = true;
+    document.head.appendChild(script);
+    return () => {
+      document.head.removeChild(script);
     };
+  }, []);
 
-    if (initialData) {
-      setCompany(initialData);
-    } else {
-      loadCompanySettings();
-    }
-  }, [initialData]);
+  const loadCompany = async () => {
+    try {
+      setLoading(true);
+      const docRef = doc(db, "settings", "company");
+      const docSnap = await getDoc(docRef);
 
-  const handleChange = (field, value) => {
-    const newData = { ...company, [field]: value };
-    setCompany(newData);
-    if (onDataChange) {
-      onDataChange(newData);
+      if (docSnap.exists()) {
+        setCompany(docSnap.data());
+        setIsNew(false);
+      }
+    } catch (error) {
+      setErrorMessage("회사 정보를 불러오는데 실패했습니다.");
+      setShowErrorModal(true);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const validateForm = () => {
+    if (!company.name.trim()) {
+      setError("회사명을 입력해주세요.");
+      return false;
+    }
+    if (!company.businessNumber.trim()) {
+      setError("사업자등록번호를 입력해주세요.");
+      return false;
+    }
+    if (!company.representative.trim()) {
+      setError("대표자명을 입력해주세요.");
+      return false;
+    }
+    if (!company.phone.trim()) {
+      setError("전화번호를 입력해주세요.");
+      return false;
+    }
+    if (!company.address.roadAddress.trim()) {
+      setError("주소를 입력해주세요.");
+      return false;
+    }
+    setError("");
+    return true;
+  };
+
+  const handleSave = async () => {
+    if (!validateForm()) return;
+
+    try {
+      if (isNew) {
+        // 새로 생성할 때는 직접 Firestore에 접근
+        const docRef = doc(db, "settings", "company");
+        await setDoc(docRef, company);
+        setIsNew(false);
+      } else {
+        // 업데이트할 때는 훅 사용
+        await updateDocument("company", company);
+      }
+      setShowSuccessModal(true);
+    } catch (error) {
+      setErrorMessage("회사 정보 저장에 실패했습니다.");
+      setShowErrorModal(true);
+    }
+  };
+
+  const handleAddressSearch = () => {
+    new window.daum.Postcode({
+      oncomplete: function (data) {
+        setCompany({
+          ...company,
+          address: {
+            postcode: data.zonecode,
+            roadAddress: data.roadAddress,
+            detailAddress: company.address.detailAddress,
+          },
+        });
+      },
+    }).open();
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
@@ -67,114 +132,184 @@ const SettingsCompany = ({ onDataChange, initialData }) => {
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium flex items-center">
-        <Building2 className="mr-2 h-5 w-5" />
-        회사 기본 정보 설정
-      </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium mb-1">
-            회사명
-          </label>
-          <input
-            id="name"
-            type="text"
-            value={company.name}
-            onChange={(e) => handleChange("name", e.target.value)}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+      <ModalMessage
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title="저장 완료"
+        message="회사 정보가 성공적으로 저장되었습니다."
+        type="success"
+      />
+
+      <ModalMessage
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title="오류 발생"
+        message={errorMessage}
+        type="error"
+      />
+
+      <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border">
+        <div className="p-4 border-b border-border theme-transition flex items-center gap-2">
+          <Building2 className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-semibold">회사 정보</h3>
         </div>
-        <div>
-          <label
-            htmlFor="businessRegistrationNumber"
-            className="block text-sm font-medium mb-1"
-          >
-            사업자등록번호
-          </label>
-          <input
-            id="businessRegistrationNumber"
-            type="text"
-            value={company.businessRegistrationNumber}
-            onChange={(e) =>
-              handleChange("businessRegistrationNumber", e.target.value)
-            }
-            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="representativeName"
-            className="block text-sm font-medium mb-1"
-          >
-            대표자명
-          </label>
-          <input
-            id="representativeName"
-            type="text"
-            value={company.representativeName}
-            onChange={(e) => handleChange("representativeName", e.target.value)}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-        <div>
-          <label htmlFor="industry" className="block text-sm font-medium mb-1">
-            업종
-          </label>
-          <input
-            id="industry"
-            type="text"
-            value={company.industry}
-            onChange={(e) => handleChange("industry", e.target.value)}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-        <div>
-          <label htmlFor="address" className="block text-sm font-medium mb-1">
-            주소
-          </label>
-          <input
-            id="address"
-            type="text"
-            value={company.address}
-            onChange={(e) => handleChange("address", e.target.value)}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-        <div>
-          <label htmlFor="phone" className="block text-sm font-medium mb-1">
-            전화번호
-          </label>
-          <input
-            id="phone"
-            type="text"
-            value={company.phone}
-            onChange={(e) => handleChange("phone", e.target.value)}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium mb-1">
-            이메일
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={company.email}
-            onChange={(e) => handleChange("email", e.target.value)}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-        <div>
-          <label htmlFor="website" className="block text-sm font-medium mb-1">
-            웹사이트
-          </label>
-          <input
-            id="website"
-            type="url"
-            value={company.website}
-            onChange={(e) => handleChange("website", e.target.value)}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+        <div className="p-6 space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">
+              회사명 <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={company.name}
+              onChange={(e) => setCompany({ ...company, name: e.target.value })}
+              className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+              placeholder="회사명을 입력하세요"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                사업자등록번호 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={company.businessNumber}
+                onChange={(e) =>
+                  setCompany({ ...company, businessNumber: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                placeholder="000-00-00000"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                대표자명 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={company.representative}
+                onChange={(e) =>
+                  setCompany({ ...company, representative: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                placeholder="대표자명을 입력하세요"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                업태
+              </label>
+              <input
+                type="text"
+                value={company.businessType}
+                onChange={(e) =>
+                  setCompany({ ...company, businessType: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                placeholder="업태를 입력하세요"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                종목
+              </label>
+              <input
+                type="text"
+                value={company.businessCategory}
+                onChange={(e) =>
+                  setCompany({ ...company, businessCategory: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                placeholder="종목을 입력하세요"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                전화번호 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="tel"
+                value={company.phone}
+                onChange={(e) =>
+                  setCompany({ ...company, phone: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                placeholder="02-0000-0000"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">
+                팩스번호
+              </label>
+              <input
+                type="tel"
+                value={company.fax}
+                onChange={(e) =>
+                  setCompany({ ...company, fax: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                placeholder="02-0000-0000"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">
+              주소 <span className="text-red-500">*</span>
+            </label>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={company.address.postcode}
+                  readOnly
+                  className="w-32 px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                  placeholder="우편번호"
+                />
+                <button
+                  onClick={handleAddressSearch}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  주소 검색
+                </button>
+              </div>
+              <input
+                type="text"
+                value={company.address.roadAddress}
+                readOnly
+                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                placeholder="도로명 주소"
+              />
+              <input
+                type="text"
+                value={company.address.detailAddress}
+                onChange={(e) =>
+                  setCompany({
+                    ...company,
+                    address: {
+                      ...company.address,
+                      detailAddress: e.target.value,
+                    },
+                  })
+                }
+                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                placeholder="상세 주소"
+              />
+            </div>
+          </div>
+
+          {error && <div className="text-red-500 text-sm">{error}</div>}
+
+          <div className="flex justify-end">
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors flex items-center gap-2"
+            >
+              <Save className="h-4 w-4" />
+              {isNew ? "등록" : "저장"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

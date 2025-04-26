@@ -1,7 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { getButtonVariantClass } from "../../utils/themeUtils";
 import {
   Save,
@@ -15,10 +30,34 @@ import {
 } from "lucide-react";
 import specTemplates from "../../data/specTemplates";
 
+// SortableItem 컴포넌트
+const SortableItem = ({ id, children }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      {children}
+    </div>
+  );
+};
+
 const CategoriesTemplateForm = ({ initialData, onSubmit, onCancel }) => {
   const [fields, setFields] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -91,15 +130,22 @@ const CategoriesTemplateForm = ({ initialData, onSubmit, onCancel }) => {
   };
 
   // 드래그 앤 드롭 핸들러
-  const handleDragEnd = (result) => {
-    if (!result.destination) return;
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
 
-    const items = Array.from(fields);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+    if (active.id !== over.id) {
+      setFields((items) => {
+        const oldIndex = items.findIndex(
+          (_, index) => `field-${index}` === active.id
+        );
+        const newIndex = items.findIndex(
+          (_, index) => `field-${index}` === over.id
+        );
 
-    setFields(items);
-    setHasChanges(true);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+      setHasChanges(true);
+    }
   };
 
   // 기본 템플릿으로 초기화
@@ -235,154 +281,65 @@ const CategoriesTemplateForm = ({ initialData, onSubmit, onCancel }) => {
             </p>
           </div>
         ) : (
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="fields">
-              {(provided) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className="space-y-4"
-                >
-                  {fields.map((field, index) => (
-                    <Draggable
-                      key={index}
-                      draggableId={`field-${index}`}
-                      index={index}
-                    >
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className="border border-border rounded-md p-4 bg-background"
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={fields.map((_, index) => `field-${index}`)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-4">
+                {fields.map((field, index) => (
+                  <SortableItem key={`field-${index}`} id={`field-${index}`}>
+                    <div className="flex items-center gap-2 p-4 border rounded-lg bg-background">
+                      <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={field.label}
+                          onChange={(e) =>
+                            handleFieldChange(index, "label", e.target.value)
+                          }
+                          placeholder="필드 레이블"
+                          className="w-full px-3 py-2 border rounded-md"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => moveField(index, "up")}
+                          disabled={index === 0}
+                          className="p-2 rounded-md hover:bg-muted"
                         >
-                          <div className="flex items-start gap-2">
-                            <div
-                              {...provided.dragHandleProps}
-                              className="mt-2 p-1 cursor-grab text-muted-foreground hover:text-foreground"
-                            >
-                              <GripVertical className="h-4 w-4" />
-                            </div>
-
-                            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
-                              <div className="space-y-2">
-                                <label className="block text-sm font-medium text-foreground">
-                                  필드 ID{" "}
-                                  <span className="text-destructive">*</span>
-                                </label>
-                                <input
-                                  type="text"
-                                  value={field.id || ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      index,
-                                      "id",
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="field_id"
-                                  className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                  비워두면 자동 생성됩니다
-                                </p>
-                              </div>
-
-                              <div className="space-y-2">
-                                <label className="block text-sm font-medium text-foreground">
-                                  레이블{" "}
-                                  <span className="text-destructive">*</span>
-                                </label>
-                                <input
-                                  type="text"
-                                  value={field.label || ""}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      index,
-                                      "label",
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="필드 레이블"
-                                  className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                                />
-                              </div>
-
-                              <div className="space-y-2">
-                                <label className="block text-sm font-medium text-foreground">
-                                  필드 타입
-                                </label>
-                                <select
-                                  value={field.type || "text"}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      index,
-                                      "type",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                                >
-                                  <option value="text">텍스트</option>
-                                  <option value="number">숫자</option>
-                                  <option value="date">날짜</option>
-                                  <option value="select">선택</option>
-                                  <option value="checkbox">체크박스</option>
-                                </select>
-                              </div>
-                            </div>
-
-                            <div className="flex flex-col space-y-1">
-                              <button
-                                type="button"
-                                onClick={() => moveField(index, "up")}
-                                disabled={index === 0}
-                                className={`p-1.5 rounded-md ${
-                                  index === 0
-                                    ? "text-muted-foreground cursor-not-allowed"
-                                    : "text-primary hover:bg-primary/5"
-                                }`}
-                                title="위로 이동"
-                              >
-                                <ArrowUp className="h-3.5 w-3.5" />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => moveField(index, "down")}
-                                disabled={index === fields.length - 1}
-                                className={`p-1.5 rounded-md ${
-                                  index === fields.length - 1
-                                    ? "text-muted-foreground cursor-not-allowed"
-                                    : "text-primary hover:bg-primary/5"
-                                }`}
-                                title="아래로 이동"
-                              >
-                                <ArrowDown className="h-3.5 w-3.5" />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => removeField(index)}
-                                className="p-1.5 rounded-md text-destructive hover:bg-destructive/5"
-                                title="삭제"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
+                          <ArrowUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveField(index, "down")}
+                          disabled={index === fields.length - 1}
+                          className="p-2 rounded-md hover:bg-muted"
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeField(index)}
+                          className="p-2 rounded-md hover:bg-muted text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </SortableItem>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
 
-        {/* 버튼 */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-border">
+        <div className="flex justify-end gap-2 pt-4 border-t border-border">
           <button
             type="button"
             onClick={onCancel}
@@ -390,16 +347,17 @@ const CategoriesTemplateForm = ({ initialData, onSubmit, onCancel }) => {
               "outline"
             )}`}
           >
-            <X className="mr-2 -ml-1 h-4 w-4" />
+            <X className="mr-1.5 h-4 w-4" />
             취소
           </button>
           <button
             type="submit"
+            disabled={!hasChanges}
             className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium ${getButtonVariantClass(
-              "primary"
+              "default"
             )}`}
           >
-            <Save className="mr-2 -ml-1 h-4 w-4" />
+            <Save className="mr-1.5 h-4 w-4" />
             저장
           </button>
         </div>

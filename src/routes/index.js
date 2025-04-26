@@ -499,7 +499,7 @@ const departmentRoutes = [
 const settingRoutes = [
   createRoute({
     id: "settings",
-    path: "/settings",
+    path: "/settings/*",
     component: Settings,
     title: "설정",
     icon: SettingsIcon,
@@ -532,7 +532,17 @@ export const flattenRoutes = (routesArray) => {
 };
 
 export const getSidebarRoutes = () => {
-  return routes.filter((route) => route.showInSidebar);
+  return routes
+    .map((route) => {
+      if (route.children) {
+        return {
+          ...route,
+          children: route.children.filter((child) => child.showInSidebar),
+        };
+      }
+      return route;
+    })
+    .filter((route) => route.showInSidebar);
 };
 
 export const getAllRoutes = () => {

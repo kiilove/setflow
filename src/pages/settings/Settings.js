@@ -1,57 +1,95 @@
 "use client";
+import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import { useLocation } from "react-router-dom";
+import { Menu, X } from "lucide-react";
 import PageContainer from "../../components/common/PageContainer";
 import SettingsMenu from "../../components/settings/SettingsMenu";
 import SettingsCompany from "../../components/settings/SettingsCompany";
-import SettingsSystem from "../../components/settings/SettingsSystem";
 import SettingsNotifications from "../../components/settings/SettingsNotifications";
-import SettingsBackup from "../../components/settings/SettingsBackup";
 import SettingsAdmin from "../../components/settings/SettingsAdmin";
-import SettingsPositions from "../../components/settings/SettingsPositions";
-import SettingsEmployeeFormat from "../../components/settings/SettingsEmployeeFormat";
-import InitialSetup from "../../components/settings/InitialSetup";
+import SettingsDepreciation from "../../components/settings/SettingsDepreciation";
+import SettingsDepartments from "../../components/settings/SettingsDepartments";
+import SettingsLocations from "../../components/settings/SettingsLocations";
 
 const Settings = () => {
   const location = useLocation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // 현재 경로에 따라 제목 설정
   const getTitle = (path) => {
-    switch (path) {
-      case "/settings/general":
-        return "회사 설정";
-      case "/settings/positions":
-        return "직위/직책 관리";
-      case "/settings/employee-id":
-        return "사원번호 관리";
-      case "/settings/notifications":
-        return "알림 설정";
-      case "/settings/backup":
-        return "백업 설정";
-      case "/settings/admin":
-        return "관리자 설정";
-      default:
-        return "설정";
-    }
+    const pathMap = {
+      "/settings/company": "회사 설정",
+      "/settings/company/departments": "부서 관리",
+      "/settings/company/locations": "위치 관리",
+      "/settings/depreciation": "감가상각 설정",
+      "/settings/system/notifications": "알림 설정",
+      "/settings/admin": "관리자 설정",
+    };
+    return pathMap[path] || "설정";
   };
 
   return (
     <PageContainer title={getTitle(location.pathname)}>
-      <div className="grid grid-cols-4 gap-6">
-        <div className="col-span-1">
-          <SettingsMenu />
+      <div className="flex flex-col lg:flex-row">
+        {/* 모바일 메뉴 토글 버튼 */}
+        <div className="lg:hidden flex items-center justify-between p-4 border-b border-border">
+          <h2 className="text-lg font-semibold">
+            {getTitle(location.pathname)}
+          </h2>
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="p-2 rounded-md hover:bg-accent"
+          >
+            {isMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
+          </button>
         </div>
-        <div className="col-span-3">
-          <Routes>
-            <Route path="/general" element={<SettingsCompany />} />
-            <Route path="/positions" element={<SettingsPositions />} />
-            <Route path="/employee-id" element={<SettingsEmployeeFormat />} />
-            <Route path="/notifications" element={<SettingsNotifications />} />
-            <Route path="/backup" element={<SettingsBackup />} />
-            <Route path="/admin" element={<SettingsAdmin />} />
-            <Route path="/initial-setup" element={<InitialSetup />} />
-          </Routes>
+
+        {/* 사이드바 - 모바일에서는 오버레이로 표시 */}
+        <div
+          className={`fixed inset-0 lg:static lg:w-64 transition-transform duration-200 ease-in-out ${
+            isMenuOpen
+              ? "translate-x-0 z-50"
+              : "-translate-x-full lg:translate-x-0"
+          }`}
+        >
+          <div className="h-full lg:h-auto bg-card lg:bg-transparent">
+            <div className="p-4 lg:p-0">
+              <SettingsMenu />
+            </div>
+          </div>
         </div>
+
+        {/* 메인 컨텐츠 */}
+        <div className="flex-1">
+          <div className="p-4 lg:px-6">
+            <Routes>
+              <Route path="company" element={<SettingsCompany />} />
+              <Route
+                path="company/departments"
+                element={<SettingsDepartments />}
+              />
+              <Route path="company/locations" element={<SettingsLocations />} />
+              <Route path="depreciation" element={<SettingsDepreciation />} />
+              <Route
+                path="system/notifications"
+                element={<SettingsNotifications />}
+              />
+              <Route path="admin" element={<SettingsAdmin />} />
+            </Routes>
+          </div>
+        </div>
+
+        {/* 모바일 메뉴 오버레이 배경 */}
+        {isMenuOpen && (
+          <div
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
+            onClick={() => setIsMenuOpen(false)}
+          />
+        )}
       </div>
     </PageContainer>
   );

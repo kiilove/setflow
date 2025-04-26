@@ -1,7 +1,6 @@
 "use client";
 import { Link } from "react-router-dom";
 import { Edit, Trash2, List } from "lucide-react";
-import { Tooltip } from "antd";
 import {
   getButtonVariantClass,
   getStatusColorClass,
@@ -42,23 +41,29 @@ const CategoryGrid = ({
                   {category.name}
                 </h3>
                 <div className="flex space-x-1">
-                  <Tooltip title="카테고리 편집">
+                  <div className="group relative">
                     <Link
                       to={`/categories/edit/${category.id}`}
                       className="text-primary hover:text-primary/80 p-1.5 rounded-md hover:bg-primary/5"
                     >
                       <Edit className="h-4 w-4" />
                     </Link>
-                  </Tooltip>
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                      카테고리 편집
+                    </div>
+                  </div>
 
-                  <Tooltip title="카테고리 삭제">
+                  <div className="group relative">
                     <button
                       className="text-destructive hover:text-destructive/80 p-1.5 rounded-md hover:bg-destructive/5"
                       onClick={() => handleDelete(category.id, category.name)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
-                  </Tooltip>
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+                      카테고리 삭제
+                    </div>
+                  </div>
                 </div>
               </div>
               <p className="text-muted-foreground text-sm mt-1">

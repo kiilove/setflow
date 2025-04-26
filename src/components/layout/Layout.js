@@ -27,7 +27,7 @@ const Layout = ({ children, toggleTheme, theme }) => {
         />
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background theme-transition">
-          <div className="container mx-auto px-4 py-6">{children}</div>
+          <div className="px-6 py-4">{children}</div>
         </main>
       </div>
     </div>

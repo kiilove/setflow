@@ -1,146 +1,78 @@
 "use client";
-
-import { NavLink } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
-  Settings,
-  Bell,
-  Shield,
-  Users,
-  Database,
-  Building,
-  Briefcase,
-  IdCard,
   Building2,
-  Wrench,
+  Bell,
+  UserCog,
+  Calculator,
+  Users,
+  MapPin,
 } from "lucide-react";
 
 const SettingsMenu = () => {
+  const location = useLocation();
+
+  const menuItems = [
+    {
+      title: "회사 정보",
+      path: "/settings/company",
+      icon: Building2,
+    },
+    {
+      title: "부서 관리",
+      path: "/settings/company/departments",
+      icon: Users,
+    },
+    {
+      title: "위치 관리",
+      path: "/settings/company/locations",
+      icon: MapPin,
+    },
+    {
+      title: "감가상각 설정",
+      path: "/settings/depreciation",
+      icon: Calculator,
+    },
+    {
+      title: "알림 설정",
+      path: "/settings/system/notifications",
+      icon: Bell,
+    },
+    {
+      title: "관리자 설정",
+      path: "/settings/admin",
+      icon: UserCog,
+    },
+  ];
+
   return (
-    <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border theme-transition">
-      <nav className="p-4">
-        <ul className="space-y-2">
-          <li>
-            <NavLink
-              to="/settings/general"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                }`
-              }
-            >
-              <Building className="h-4 w-4" />
-              <span>회사 설정</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/settings/positions"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                }`
-              }
-            >
-              <Briefcase className="h-4 w-4" />
-              <span>직위/직책 관리</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/settings/employee-id"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                }`
-              }
-            >
-              <IdCard className="h-4 w-4" />
-              <span>사원번호 관리</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/settings/notifications"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                }`
-              }
-            >
-              <Bell className="h-4 w-4" />
-              <span>알림 설정</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/settings/security"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                }`
-              }
-            >
-              <Shield className="h-4 w-4" />
-              <span>보안 설정</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/settings/backup"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                }`
-              }
-            >
-              <Database className="h-4 w-4" />
-              <span>백업 설정</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/settings/admin"
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                }`
-              }
-            >
-              <Users className="h-4 w-4" />
-              <span>관리자 설정</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/settings/initial-setup"
-              className={({ isActive }) =>
-                `flex items-center px-4 py-2 rounded-md ${
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-muted"
-                }`
-              }
-            >
-              <Wrench className="mr-2 h-4 w-4" />
-              초기 설정
-            </NavLink>
-          </li>
+    <div className="w-64 bg-card border-r border-border h-full">
+      <div className="p-4">
+        <h2 className="text-lg font-semibold mb-4">설정</h2>
+        <ul className="space-y-1">
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            const Icon = item.icon;
+            return (
+              <li key={item.path}>
+                <Link
+                  to={item.path}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                    isActive
+                      ? "bg-primary/10 text-primary border-l-4 border-primary"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                  }`}
+                >
+                  <Icon
+                    className={`h-5 w-5 ${isActive ? "text-primary" : ""}`}
+                  />
+                  <span className="font-medium">{item.title}</span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
-      </nav>
+      </div>
     </div>
   );
 };

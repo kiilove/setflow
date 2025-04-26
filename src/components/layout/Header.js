@@ -31,18 +31,15 @@ const Header = ({ toggleSidebar, toggleTheme, theme }) => {
   };
 
   return (
-    <header
-      className="bg-card shadow-md z-10 theme-transition"
-      style={{ height: "65px" }}
-    >
-      <div className="flex items-center justify-between py-2 px-6">
+    <header className="bg-card shadow-md z-10 theme-transition h-[72px] border-b border-border">
+      <div className="flex items-center justify-between h-full px-6">
         <div className="flex items-center">
           <button
             onClick={toggleSidebar}
-            className=" rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none md:hidden theme-transition"
+            className="rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none md:hidden theme-transition"
             aria-label="Toggle sidebar"
           >
-            <Menu className=" w-6 h-6" />
+            <Menu className="w-6 h-6" />
           </button>
         </div>
 
@@ -100,7 +97,7 @@ const Header = ({ toggleSidebar, toggleTheme, theme }) => {
                     <p className="text-xs text-muted-foreground mt-1">어제</p>
                   </div>
                 </div>
-                <div className="p-3 border-t border-border text-center">
+                <div className="p-3 border-t border-border">
                   <Link
                     to="/notifications"
                     className="text-sm text-primary hover:text-primary/80"

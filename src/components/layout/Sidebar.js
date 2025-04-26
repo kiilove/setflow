@@ -53,7 +53,7 @@ const Sidebar = ({ isOpen, toggleSidebar, theme }) => {
         }`}
       >
         {/* 헤더 */}
-        <div className="border-b border-border p-4 theme-transition">
+        <div className="border-b border-border h-[72px] flex items-center px-6 theme-transition">
           <Link
             to="/"
             className="flex items-center gap-2"
@@ -64,7 +64,7 @@ const Sidebar = ({ isOpen, toggleSidebar, theme }) => {
         </div>
 
         {/* 컨텐츠 */}
-        <div className="overflow-x-hidden px-2 py-4">
+        <div className="p-4">
           <ul>
             {sidebarRoutes.map((route) => (
               <li key={route.id} className="mb-1">
