@@ -36,6 +36,7 @@ const DateInput = ({
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
+  const [error, setError] = useState("");
   const calendarRef = useRef(null);
   const [showYearSelect, setShowYearSelect] = useState(false);
   const [showMonthSelect, setShowMonthSelect] = useState(false);
@@ -83,11 +84,40 @@ const DateInput = ({
     }
   }, [showYearSelect, currentDate]);
 
+  // 날짜 형식 검증
+  const validateDate = (dateStr) => {
+    if (!dateStr) return true;
+
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return false;
+
+    const [year, month, day] = parts.map(Number);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return false;
+
+    const date = new Date(year, month - 1, day);
+    return (
+      date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day
+    );
+  };
+
   // 입력값 변경 핸들러
   const handleInputChange = (e) => {
     let input = e.target.value;
-    // 숫자만 허용
-    input = input.replace(/\D/g, "");
+    // 숫자와 하이픈만 허용
+    input = input.replace(/[^\d-]/g, "");
+
+    // 백스페이스로 지울 때는 자동 하이픈 추가를 하지 않음
+    if (e.nativeEvent.inputType !== "deleteContentBackward") {
+      // 자동 하이픈 추가
+      if (input.length === 4 && !input.includes("-")) {
+        input = input + "-";
+      } else if (input.length === 7 && input.split("-").length === 2) {
+        input = input + "-";
+      }
+    }
+
     setInputValue(input);
 
     if (onChange) {
@@ -110,17 +140,76 @@ const DateInput = ({
         4,
         6
       )}-${input.substring(6, 8)}`;
-      setInputValue(formattedDate);
 
-      if (onChange) {
-        const event = {
-          target: {
-            name,
-            value: formattedDate,
-          },
-        };
-        onChange(event);
+      if (validateDate(formattedDate)) {
+        setInputValue(formattedDate);
+        setError("");
+        if (onChange) {
+          const event = {
+            target: {
+              name,
+              value: formattedDate,
+            },
+          };
+          onChange(event);
+        }
+      } else {
+        setError(
+          <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-lg">
+            <div className="flex-shrink-0 mt-0.5">
+              <svg
+                className="w-5 h-5 text-destructive"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <div className="text-sm text-destructive">
+              <p className="font-medium">올바른 날짜 형식이 아닙니다.</p>
+              <p className="mt-1">YYYY-MM-DD 형식으로 입력해주세요.</p>
+              <p className="mt-1 text-muted-foreground">예: 2024-01-01</p>
+            </div>
+          </div>
+        );
       }
+    } else if (input.length > 0) {
+      setError(
+        <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-lg">
+          <div className="flex-shrink-0 mt-0.5">
+            <svg
+              className="w-5 h-5 text-destructive"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <div className="text-sm text-destructive">
+            <p className="font-medium">날짜 형식이 올바르지 않습니다.</p>
+            <p className="mt-1">
+              8자리 숫자를 입력하거나 달력에서 날짜를 선택해주세요.
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              예: 20240101 또는 2024-01-01
+            </p>
+          </div>
+        </div>
+      );
+    } else {
+      setError("");
     }
   };
 
@@ -134,37 +223,18 @@ const DateInput = ({
   // 날짜 선택 핸들러
   const handleDateSelect = (date, isCurrentMonth) => {
     if (!isCurrentMonth) {
-      // 다른 달의 날짜를 선택한 경우 해당 달로 이동하고 날짜 선택
       setCurrentDate(new Date(date.getFullYear(), date.getMonth(), 1));
-      setSelectedDate(date);
-      // 로컬 시간을 사용하여 날짜 포맷팅
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      const formattedDate = `${year}-${month}-${day}`;
-      setInputValue(formattedDate);
-      setShowCalendar(false);
-
-      if (onChange) {
-        const event = {
-          target: {
-            name,
-            value: formattedDate,
-          },
-        };
-        onChange(event);
-      }
-      return;
     }
 
-    // 현재 달의 날짜 선택
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     const formattedDate = `${year}-${month}-${day}`;
+
     setInputValue(formattedDate);
     setSelectedDate(date);
     setShowCalendar(false);
+    setError("");
 
     if (onChange) {
       const event = {
@@ -256,7 +326,7 @@ const DateInput = ({
   };
 
   const handleKeyDown = (e) => {
-    // 숫자와 하이픈만 허용
+    // 숫자와 하이픈만 허용 (백스페이스는 허용)
     if (
       !/[\d-]/.test(e.key) &&
       !["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"].includes(e.key)
@@ -277,7 +347,7 @@ const DateInput = ({
       }
     }
 
-    // 자동 하이픈 추가
+    // 백스페이스로 지울 때는 자동 하이픈 추가를 하지 않음
     if (e.key !== "Backspace" && e.key !== "Delete") {
       const value = e.target.value;
       if (value.length === 4 || value.length === 7) {
@@ -327,11 +397,14 @@ const DateInput = ({
         <div className="flex items-center gap-2">
           <input
             type="text"
+            id={id}
+            name={name}
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
-            placeholder="YYYY-MM-DD"
+            placeholder={placeholder}
+            disabled={disabled}
             className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
           />
           <button
@@ -341,6 +414,8 @@ const DateInput = ({
             <FaCalendarAlt className="w-5 h-5" />
           </button>
         </div>
+
+        {error && <div className="mt-2">{error}</div>}
 
         {showCalendar && (
           <div

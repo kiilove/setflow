@@ -2,16 +2,26 @@
 
 import React from "react";
 import { useState, useEffect } from "react";
-import { useFirestore } from "../../hooks/useFirestore";
-import useModalMessage from "../../hooks/useModalMessage";
-import { Users, Plus, Pencil, Trash2, X, MapPin, Building } from "lucide-react";
+import { useMessageContext } from "../../context/MessageContext";
+import {
+  Users,
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  MapPin,
+  Building,
+  ArrowLeft,
+} from "lucide-react";
 import * as Icons from "lucide-react";
 import DepartmentIconSelector from "../departments/DepartmentIconSelector";
+import DepartmentForm from "../departments/DepartmentForm";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "../../firebase/config";
+import ModalMessage from "../common/ModalMessage";
 
 const SettingsDepartments = () => {
-  const { getCollection, addDocument, updateDocument, deleteDocument } =
-    useFirestore();
-  const { showModal } = useModalMessage();
+  const { showSuccess, showError } = useMessageContext();
 
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState([]);
@@ -27,6 +37,8 @@ const SettingsDepartments = () => {
   });
   const [locations, setLocations] = useState([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [departmentToDelete, setDepartmentToDelete] = useState(null);
 
   useEffect(() => {
     loadDepartments();
@@ -36,10 +48,17 @@ const SettingsDepartments = () => {
   const loadDepartments = async () => {
     try {
       setLoading(true);
-      const data = await getCollection("departments");
-      setDepartments(data);
+      const docRef = doc(db, "settings", "departments");
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setDepartments(data.departments || []);
+      } else {
+        setDepartments([]);
+      }
     } catch (error) {
-      showModal("error", "부서 목록을 불러오는데 실패했습니다.");
+      showError("오류", "부서 목록을 불러오는데 실패했습니다.");
     } finally {
       setLoading(false);
     }
@@ -48,8 +67,15 @@ const SettingsDepartments = () => {
   const loadLocations = async () => {
     try {
       setLoadingLocations(true);
-      const data = await getCollection("locations");
-      setLocations(data);
+      const docRef = doc(db, "settings", "locations");
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setLocations(data.locations || []);
+      } else {
+        setLocations([]);
+      }
     } catch (error) {
       console.error("위치 데이터를 불러오는 중 오류가 발생했습니다:", error);
     } finally {
@@ -73,35 +99,36 @@ const SettingsDepartments = () => {
     });
   };
 
-  const validateForm = () => {
-    if (!formData.name.trim()) {
-      showModal("error", "부서명을 입력해주세요.");
-      return false;
-    }
-    if (
-      departments.some(
-        (d) =>
-          d.id !== editingDepartment?.id &&
-          d.name.toLowerCase() === formData.name.toLowerCase()
-      )
-    ) {
-      showModal("error", "이미 존재하는 부서명입니다.");
-      return false;
-    }
-    return true;
-  };
-
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
-
+  const handleSubmit = async (data) => {
     try {
-      if (editingDepartment) {
-        await updateDocument("departments", editingDepartment.id, formData);
-        showModal("success", "부서가 수정되었습니다.");
-      } else {
-        await addDocument("departments", formData);
-        showModal("success", "부서가 추가되었습니다.");
+      const docRef = doc(db, "settings", "departments");
+      const docSnap = await getDoc(docRef);
+
+      let updatedDepartments = [];
+      if (docSnap.exists()) {
+        updatedDepartments = [...docSnap.data().departments];
       }
+
+      if (editingDepartment) {
+        // 수정
+        const index = updatedDepartments.findIndex(
+          (d) => d.id === editingDepartment.id
+        );
+        if (index !== -1) {
+          updatedDepartments[index] = { ...data, id: editingDepartment.id };
+        }
+      } else {
+        // 추가
+        const newId = Date.now().toString();
+        updatedDepartments.push({ ...data, id: newId });
+      }
+
+      await setDoc(docRef, { departments: updatedDepartments });
+      showSuccess(
+        "저장 완료",
+        editingDepartment ? "부서가 수정되었습니다." : "부서가 추가되었습니다."
+      );
+
       setShowForm(false);
       setEditingDepartment(null);
       setFormData({
@@ -114,7 +141,35 @@ const SettingsDepartments = () => {
       });
       loadDepartments();
     } catch (error) {
-      showModal("error", "부서 저장에 실패했습니다.");
+      showError("오류", "부서 저장에 실패했습니다.");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    setDepartmentToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!departmentToDelete) return;
+
+    try {
+      const docRef = doc(db, "settings", "departments");
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const updatedDepartments = docSnap
+          .data()
+          .departments.filter((d) => d.id !== departmentToDelete);
+        await setDoc(docRef, { departments: updatedDepartments });
+        showSuccess("삭제 완료", "부서가 삭제되었습니다.");
+        loadDepartments();
+      }
+    } catch (error) {
+      showError("오류", "부서 삭제에 실패했습니다.");
+    } finally {
+      setShowDeleteConfirm(false);
+      setDepartmentToDelete(null);
     }
   };
 
@@ -129,16 +184,6 @@ const SettingsDepartments = () => {
       iconTextColor: department.iconTextColor || "text-gray-500",
     });
     setShowForm(true);
-  };
-
-  const handleDelete = async (id) => {
-    try {
-      await deleteDocument("departments", id);
-      showModal("success", "부서가 삭제되었습니다.");
-      loadDepartments();
-    } catch (error) {
-      showModal("error", "부서 삭제에 실패했습니다.");
-    }
   };
 
   const renderDepartmentIcon = (department) => {
@@ -158,13 +203,52 @@ const SettingsDepartments = () => {
     );
   }
 
+  // 모바일에서 전체 화면 폼
+  if (showForm) {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border">
+          <div className="p-3 sm:p-4 border-border theme-transition flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingDepartment(null);
+                }}
+                className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                목록으로
+              </button>
+            </div>
+            <h3 className="text-base font-semibold">
+              {editingDepartment ? "부서 수정" : "부서 추가"}
+            </h3>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          <DepartmentForm
+            initialValues={formData}
+            onSubmit={handleSubmit}
+            onCancel={() => {
+              setShowForm(false);
+              setEditingDepartment(null);
+            }}
+            isEditing={!!editingDepartment}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="bg-card text-card-foreground rounded-lg shadow-sm border border-border">
         <div className="p-3 sm:p-4 border-b border-border theme-transition flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
-            <h3 className="text-base sm:text-lg font-semibold">부서 관리</h3>
+            <h3 className="text-base font-semibold">부서 관리</h3>
           </div>
           <button
             onClick={() => {
@@ -189,7 +273,7 @@ const SettingsDepartments = () => {
           {departments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
               <Users className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
-              <h4 className="text-base sm:text-lg font-medium mb-2">
+              <h4 className="text-base font-medium mb-2">
                 등록된 부서가 없습니다
               </h4>
               <p className="text-sm text-muted-foreground mb-4">
@@ -212,7 +296,7 @@ const SettingsDepartments = () => {
                       >
                         {renderDepartmentIcon(department)}
                       </div>
-                      <h3 className="text-base sm:text-lg font-medium text-foreground">
+                      <h3 className="text-base font-medium text-foreground">
                         {department.name}
                       </h3>
                     </div>
@@ -253,112 +337,37 @@ const SettingsDepartments = () => {
         </div>
       </div>
 
-      {/* 부서 추가/편집 모달 */}
-      {showForm && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card w-full max-w-2xl rounded-lg shadow-lg border border-border max-h-[90vh] overflow-y-auto">
-            <div className="p-3 sm:p-4 border-b border-border flex items-center justify-between sticky top-0 bg-card z-10">
-              <h3 className="text-base sm:text-lg font-semibold">
-                {editingDepartment ? "부서 수정" : "부서 추가"}
-              </h3>
-              <button
-                onClick={() => {
-                  setShowForm(false);
-                  setEditingDepartment(null);
-                }}
-                className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="h-4 w-4 sm:h-5 sm:w-5" />
-              </button>
-            </div>
-            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-              <div className="space-y-3 sm:space-y-4">
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
-                    부서명 <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    placeholder="부서명을 입력하세요"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
-                    설명
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    rows={3}
-                    placeholder="부서에 대한 설명을 입력하세요"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs sm:text-sm font-medium text-foreground mb-1">
-                    위치
-                  </label>
-                  <select
-                    name="locationId"
-                    value={formData.locationId}
-                    onChange={handleLocationChange}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="">위치 선택...</option>
-                    {locations.map((location) => (
-                      <option key={location.id} value={location.id}>
-                        {location.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <DepartmentIconSelector
-                  selectedIcon={formData.icon}
-                  selectedColor={{
-                    name: "기본",
-                    bg: formData.iconColor,
-                    text: formData.iconTextColor,
-                  }}
-                  onSelectIcon={(icon) => setFormData({ ...formData, icon })}
-                  onSelectColor={(color) =>
-                    setFormData({
-                      ...formData,
-                      iconColor: color.bg,
-                      iconTextColor: color.text,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 sm:space-x-3">
-                <button
-                  onClick={() => {
-                    setShowForm(false);
-                    setEditingDepartment(null);
-                  }}
-                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  {editingDepartment ? "수정" : "추가"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalMessage
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setDepartmentToDelete(null);
+        }}
+        title="부서 삭제"
+        message={
+          <>
+            정말로 이 부서를 삭제하시겠습니까?
+            <br />
+            삭제된 부서는 복구할 수 없습니다.
+          </>
+        }
+        type="confirm"
+        actions={[
+          {
+            label: "취소",
+            onClick: () => {
+              setShowDeleteConfirm(false);
+              setDepartmentToDelete(null);
+            },
+            variant: "outline",
+          },
+          {
+            label: "삭제",
+            onClick: confirmDelete,
+            variant: "error",
+          },
+        ]}
+      />
     </div>
   );
 };

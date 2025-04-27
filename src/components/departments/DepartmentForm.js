@@ -4,31 +4,41 @@ import { useState, useEffect } from "react";
 import { getButtonVariantClass } from "../../utils/themeUtils";
 import { Save, X, MapPin, Building } from "lucide-react";
 import DepartmentIconSelector from "./DepartmentIconSelector";
-import { useFirestore } from "../../hooks/useFirestore";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../firebase/config";
 
-const DepartmentForm = ({ initialData, onSubmit, onCancel }) => {
-  // 기본 상태 관리
+const DepartmentForm = ({
+  initialValues,
+  onSubmit,
+  onCancel,
+  isEditing = false,
+}) => {
   const [formData, setFormData] = useState({
-    name: initialData?.name || "",
-    description: initialData?.description || "",
-    address: initialData?.address || "",
-    detail: initialData?.detail || "",
-    locationId: initialData?.locationId || "",
-    ...initialData,
+    name: initialValues?.name || "",
+    description: initialValues?.description || "",
+    locationId: initialValues?.locationId || "",
+    address: initialValues?.address || "",
+    detail: initialValues?.detail || "",
+    icon: initialValues?.icon || "Building",
+    iconColor: initialValues?.iconColor || "bg-gray-100",
+    iconTextColor: initialValues?.iconTextColor || "text-gray-500",
   });
 
   const [errors, setErrors] = useState({});
   const [locations, setLocations] = useState([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
-  const { getCollection } = useFirestore("locations");
 
-  // 위치 데이터 로드
   useEffect(() => {
     const fetchLocations = async () => {
       try {
         setLoadingLocations(true);
-        const data = await getCollection();
-        setLocations(data);
+        const docRef = doc(db, "settings", "locations");
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setLocations(data.locations || []);
+        }
       } catch (error) {
         console.error("위치 데이터를 불러오는 중 오류가 발생했습니다:", error);
       } finally {
@@ -37,9 +47,8 @@ const DepartmentForm = ({ initialData, onSubmit, onCancel }) => {
     };
 
     fetchLocations();
-  }, [getCollection]);
+  }, []);
 
-  // 위치 선택 핸들러
   const handleLocationChange = (e) => {
     const locationId = e.target.value;
 
@@ -89,7 +98,6 @@ const DepartmentForm = ({ initialData, onSubmit, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
     if (validateForm()) {
       onSubmit(formData);
     }
@@ -153,11 +161,11 @@ const DepartmentForm = ({ initialData, onSubmit, onCancel }) => {
 
           {/* 아이콘 선택기 */}
           <DepartmentIconSelector
-            selectedIcon={formData.icon || "Building"}
+            selectedIcon={formData.icon}
             selectedColor={{
               name: formData.iconColorName || "기본",
-              bg: formData.iconColor || "bg-gray-100",
-              text: formData.iconTextColor || "text-gray-500",
+              bg: formData.iconColor,
+              text: formData.iconTextColor,
             }}
             onSelectIcon={(icon) => setFormData({ ...formData, icon })}
             onSelectColor={(color) =>
@@ -178,7 +186,6 @@ const DepartmentForm = ({ initialData, onSubmit, onCancel }) => {
           <h3 className="text-lg font-semibold text-foreground">위치 정보</h3>
         </div>
         <div className="grid grid-cols-1 gap-4">
-          {/* 위치 선택 드롭다운 */}
           <div className="space-y-2">
             <label
               htmlFor="locationId"
@@ -189,7 +196,7 @@ const DepartmentForm = ({ initialData, onSubmit, onCancel }) => {
             <select
               id="locationId"
               name="locationId"
-              value={formData.locationId || ""}
+              value={formData.locationId}
               onChange={handleLocationChange}
               className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
             >
@@ -272,7 +279,7 @@ const DepartmentForm = ({ initialData, onSubmit, onCancel }) => {
           )}`}
         >
           <Save className="mr-2 -ml-1 h-4 w-4" />
-          저장
+          {isEditing ? "수정 완료" : "저장"}
         </button>
       </div>
     </form>

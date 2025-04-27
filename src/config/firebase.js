@@ -1,11 +1,9 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
-import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
 
-// Firebase 구성
 const firebaseConfig = {
+  // Firebase 설정 정보는 Firebase 콘솔에서 가져와야 합니다
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
@@ -14,19 +12,6 @@ const firebaseConfig = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
-// Firebase 초기화
 const app = initializeApp(firebaseConfig);
-
-// Firestore 초기화
-const db = getFirestore(app);
-
-// Firebase Authentication 초기화
-const auth = getAuth(app);
-
-// Firebase Storage 초기화
-const storage = getStorage(app);
-
-// Firebase Functions 초기화
-const functions = getFunctions(app);
-
-export { db, auth, storage, functions };
+export const db = getFirestore(app);
+export const functions = getFunctions(app);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useFirestore } from "../../hooks/useFirestore";
-import { Building2, Save } from "lucide-react";
+import { Building2, Save, Search } from "lucide-react";
 import ModalMessage from "../common/ModalMessage";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase/config";
@@ -162,7 +162,7 @@ const SettingsCompany = () => {
               type="text"
               value={company.name}
               onChange={(e) => setCompany({ ...company, name: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               placeholder="회사명을 입력하세요"
             />
           </div>
@@ -178,7 +178,7 @@ const SettingsCompany = () => {
                 onChange={(e) =>
                   setCompany({ ...company, businessNumber: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="000-00-00000"
               />
             </div>
@@ -192,7 +192,7 @@ const SettingsCompany = () => {
                 onChange={(e) =>
                   setCompany({ ...company, representative: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="대표자명을 입력하세요"
               />
             </div>
@@ -206,7 +206,7 @@ const SettingsCompany = () => {
                 onChange={(e) =>
                   setCompany({ ...company, businessType: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="업태를 입력하세요"
               />
             </div>
@@ -220,7 +220,7 @@ const SettingsCompany = () => {
                 onChange={(e) =>
                   setCompany({ ...company, businessCategory: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="종목을 입력하세요"
               />
             </div>
@@ -234,7 +234,7 @@ const SettingsCompany = () => {
                 onChange={(e) =>
                   setCompany({ ...company, phone: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="02-0000-0000"
               />
             </div>
@@ -248,7 +248,7 @@ const SettingsCompany = () => {
                 onChange={(e) =>
                   setCompany({ ...company, fax: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="02-0000-0000"
               />
             </div>
@@ -264,13 +264,14 @@ const SettingsCompany = () => {
                   type="text"
                   value={company.address.postcode}
                   readOnly
-                  className="w-32 px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                  className="w-32 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   placeholder="우편번호"
                 />
                 <button
                   onClick={handleAddressSearch}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                  className="inline-flex items-center px-3 py-2 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
                 >
+                  <Search className="h-4 w-4 mr-1" />
                   주소 검색
                 </button>
               </div>
@@ -278,7 +279,7 @@ const SettingsCompany = () => {
                 type="text"
                 value={company.address.roadAddress}
                 readOnly
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="도로명 주소"
               />
               <input
@@ -293,7 +294,7 @@ const SettingsCompany = () => {
                     },
                   })
                 }
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="상세 주소"
               />
             </div>

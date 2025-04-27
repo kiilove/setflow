@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { getButtonVariantClass } from "../../utils/themeUtils";
 import { Save, X, MapPin, Building, Search } from "lucide-react";
 import DaumPostcode from "react-daum-postcode";
+import { useMessageContext } from "../../context/MessageContext";
 
 const LocationForm = ({
   initialValues,
@@ -11,11 +12,12 @@ const LocationForm = ({
   onCancel,
   isEditing = false,
 }) => {
+  const { showError } = useMessageContext();
   const [formData, setFormData] = useState({
     name: "",
+    description: "",
     address: "",
     detail: "",
-    description: "",
     ...initialValues,
   });
 
@@ -287,22 +289,19 @@ const LocationForm = ({
   };
 
   const validateForm = () => {
-    const newErrors = {};
-
     if (!formData.name.trim()) {
-      newErrors.name = "위치명을 입력해주세요";
+      showError("입력 오류", "위치명을 입력해주세요.");
+      return false;
     }
     if (!formData.address.trim()) {
-      newErrors.address = "주소를 입력해주세요";
+      showError("입력 오류", "주소를 입력해주세요.");
+      return false;
     }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return true;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
     if (validateForm()) {
       onSubmit(formData);
     }

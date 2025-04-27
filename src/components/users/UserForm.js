@@ -20,33 +20,38 @@ import {
 import { departments } from "../../data/userInitialData";
 import PhoneInput from "../common/PhoneInput";
 import DateInput from "../common/DateInput";
-import EmployeeIdInput from "../common/EmployeeIdInput";
+import RandomInput from "../common/RandomInput";
 import ProfileImageUpload from "./ProfileImageUpload";
 import useImageUpload from "../../hooks/useImageUpload";
 import { deleteFileFromStorage } from "../../utils/fileUtils";
 import { db } from "../../firebase/config";
 import { doc, getDoc } from "firebase/firestore";
+import { sanitizeEmptyValues } from "../../utils/objectUtils";
 
 const UserForm = ({
   user,
   onSubmit,
+  onCancel,
   isEditing = false,
   departments = [],
   locations = [],
+  isSubmitting = false,
 }) => {
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    department: "",
-    position: "",
-    title: "",
-    employeeId: "",
-    joinDate: "",
-    status: "재직중",
-    role: "사용자",
-    location: "",
-    ...user,
+    name: user?.name || "",
+    email: user?.email || "",
+    position: user?.position || "",
+    title: user?.title || "",
+    employeeNumber: user?.employeeNumber || "",
+    department: user?.department || "",
+    location: user?.location || "",
+    phone: user?.phone || "",
+    profileImage: user?.profileImage || "",
+    extension: user?.extension || "",
+    workType: user?.workType || "",
+    joinDate: user?.joinDate || "",
+    gender: user?.gender || "",
+    notes: user?.notes || "",
   });
 
   const [errors, setErrors] = useState({});
@@ -54,14 +59,10 @@ const UserForm = ({
   const [previousImageUrl, setPreviousImageUrl] = useState(
     user?.profileImage || null
   );
-  const [positions, setPositions] = useState([]);
-  const [titles, setTitles] = useState([]);
-  const [loadingSettings, setLoadingSettings] = useState(false);
 
   // 이미지 업로드 훅 사용
   const {
     imagePreview,
-    isCompressed,
     isUploading,
     error: imageError,
     handleImageSelect: originalHandleImageSelect,
@@ -92,31 +93,7 @@ const UserForm = ({
     return () => {
       cleanupImage();
     };
-  }, []);
-
-  // 직위와 직책 데이터 로드
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        setLoadingSettings(true);
-        const positionsDoc = await getDoc(doc(db, "settings", "positions"));
-        const titlesDoc = await getDoc(doc(db, "settings", "titles"));
-
-        if (positionsDoc.exists()) {
-          setPositions(positionsDoc.data().positions || []);
-        }
-        if (titlesDoc.exists()) {
-          setTitles(titlesDoc.data().titles || []);
-        }
-      } catch (error) {
-        console.error("Error loading settings:", error);
-      } finally {
-        setLoadingSettings(false);
-      }
-    };
-
-    loadSettings();
-  }, []);
+  }, [cleanupImage]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -171,9 +148,7 @@ const UserForm = ({
       newErrors.email = "유효한 이메일 형식이 아닙니다";
     }
     if (!formData.department) newErrors.department = "부서를 선택해주세요";
-    if (!formData.position) newErrors.position = "직위를 선택해주세요";
-    if (!formData.employeeId.trim())
-      newErrors.employeeId = "사원번호를 입력해주세요";
+    if (!formData.gender) newErrors.gender = "성별을 선택해주세요";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -183,231 +158,204 @@ const UserForm = ({
     e.preventDefault();
 
     if (!validateForm()) {
+      setErrors({ submit: "유효성 검사 실패로 제출이 중단되었습니다" });
       return;
     }
 
     try {
-      let profileImageUrl = user?.profileImage;
+      // 제출할 데이터 준비
+      let submitData = { ...formData };
 
-      // 이미지가 변경된 경우에만 처리
+      // 이미지 처리
       if (imageChanged) {
-        // 이미지가 삭제된 경우 (resetImage 호출 후)
-        if (!imagePreview && previousImageUrl) {
-          try {
-            await deleteFileFromStorage(previousImageUrl);
-            console.log("기존 프로필 이미지 삭제 완료:", previousImageUrl);
-            profileImageUrl = null;
-          } catch (error) {
-            console.error("기존 프로필 이미지 삭제 중 오류 발생:", error);
-            // 오류가 발생해도 계속 진행
-          }
-        }
-        // 새 이미지가 업로드된 경우
-        else if (imagePreview) {
-          // 새 이미지 업로드
-          const newImageUrl = await uploadImage("users/profiles");
-
-          // 업로드 성공 및 기존 이미지가 있으면 기존 이미지 삭제
-          if (
-            newImageUrl &&
-            previousImageUrl &&
-            newImageUrl !== previousImageUrl
-          ) {
-            try {
-              await deleteFileFromStorage(previousImageUrl);
-              console.log("기존 프로필 이미지 삭제 완료:", previousImageUrl);
-            } catch (error) {
-              console.error("기존 프로필 이미지 삭제 중 오류 발생:", error);
-              // 오류가 발생해도 계속 진행
-            }
-          }
-
-          profileImageUrl = newImageUrl;
+        if (imagePreview) {
+          const imageUrl = await uploadImage("users/profiles");
+          submitData.profileImage = imageUrl;
+        } else {
+          submitData.profileImage = "";
         }
       }
 
-      // 폼 데이터와 이미지 URL 결합
-      const userData = {
-        ...formData,
-        profileImage: profileImageUrl,
-      };
+      // 빈 값 처리
+      submitData = sanitizeEmptyValues(submitData);
 
-      // 사용자 데이터 저장 시도
-      await onSubmit(userData);
+      // 폼 제출
+      await onSubmit(submitData);
     } catch (error) {
-      console.error("사용자 등록 중 오류 발생:", error);
-      throw error; // 에러를 상위로 전파하여 에러 메시지 표시
+      console.error("[사용자폼] 폼 제출 중 오류 발생:", error);
+      setErrors({ submit: error.message });
     }
+  };
+
+  // 부서 변경 시 위치 자동 설정
+  const handleDepartmentChange = (e) => {
+    const selectedDepartment = departments.find(
+      (dept) => dept.name === e.target.value
+    );
+
+    // 부서가 선택되었고 해당 부서에 연동된 위치가 있는 경우
+    if (selectedDepartment && selectedDepartment.locationId) {
+      const defaultLocation = locations.find(
+        (loc) => loc.id === selectedDepartment.locationId
+      );
+
+      setFormData((prev) => ({
+        ...prev,
+        department: e.target.value,
+        location: defaultLocation ? defaultLocation.name : prev.location,
+      }));
+    } else {
+      // 부서가 선택되지 않았거나 연동된 위치가 없는 경우
+      setFormData((prev) => ({
+        ...prev,
+        department: e.target.value,
+      }));
+    }
+  };
+
+  // 위치 변경 시
+  const handleLocationChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      location: e.target.value,
+    }));
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-2">
+        <label className="text-sm font-medium">프로필 이미지</label>
+        <ProfileImageUpload
+          currentImage={formData.profileImage}
+          onImageSelect={handleImageSelect}
+          onReset={resetImage}
+          imagePreview={imagePreview}
+          isUploading={isUploading}
+          error={imageError}
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* 프로필 이미지 업로드 */}
-        <div className="md:col-span-2 flex justify-center">
-          <ProfileImageUpload
-            imagePreview={imagePreview}
-            onImageSelect={handleImageSelect}
-            onReset={resetImage}
-            isCompressed={isCompressed}
-            isUploading={isUploading}
-            error={imageError}
-          />
-        </div>
-
-        {/* 첫 번째 행 */}
-        <div>
-          <label
-            htmlFor="employeeId"
-            className="block text-sm font-medium mb-1"
-          >
-            <span className="flex items-center">
-              <IdCard className="mr-1 text-blue-500 h-4 w-4" />
-              사원번호 *
-            </span>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            사원번호 <span className="text-red-500">*</span>
           </label>
-          <EmployeeIdInput
-            id="employeeId"
-            name="employeeId"
-            value={formData.employeeId || ""}
+          <RandomInput
+            name="employeeNumber"
+            value={formData.employeeNumber}
             onChange={handleChange}
-            required={true}
-            isEditing={isEditing}
+            type="number"
+            length={6}
+            showLengthSelector
+            required
+            placeholder="예: 123456"
           />
         </div>
 
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium mb-1">
-            <span className="flex items-center">
-              <User className="mr-1 text-primary h-4 w-4" />
-              이름 *
-            </span>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            성별 <span className="text-red-500">*</span>
+          </label>
+          <select
+            name="gender"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={formData.gender}
+            onChange={handleChange}
+            required
+          >
+            <option value="">성별 선택</option>
+            <option value="남성">남성</option>
+            <option value="여성">여성</option>
+          </select>
+          {errors.gender && (
+            <p className="text-sm text-red-500">{errors.gender}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            이름 <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
-            id="name"
             name="name"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={formData.name}
             onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-md ${
-              errors.name ? "border-destructive" : "border-input"
-            } bg-background focus:outline-none focus:ring-2 focus:ring-primary`}
+            required
           />
-          {errors.name && (
-            <p className="mt-1 text-sm text-destructive">{errors.name}</p>
-          )}
         </div>
 
-        {/* 두 번째 행 */}
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium mb-1">
-            <span className="flex items-center">
-              <Mail className="mr-1 text-blue-500 h-4 w-4" />
-              이메일 *
-            </span>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            이메일 <span className="text-red-500">*</span>
           </label>
           <input
             type="email"
-            id="email"
             name="email"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={formData.email}
             onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-md ${
-              errors.email ? "border-destructive" : "border-input"
-            } bg-background focus:outline-none focus:ring-2 focus:ring-primary`}
+            required
           />
-          {errors.email && (
-            <p className="mt-1 text-sm text-destructive">{errors.email}</p>
-          )}
         </div>
 
-        <div>
-          <label htmlFor="phone" className="block text-sm font-medium mb-1">
-            <span className="flex items-center">
-              <Phone className="mr-1 text-blue-500 h-4 w-4" />
-              전화번호
-            </span>
-          </label>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">사내번호</label>
+          <input
+            type="tel"
+            name="extension"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={formData.extension}
+            onChange={handleChange}
+            placeholder="예: 1234"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">개인연락처</label>
           <PhoneInput
-            id="phone"
             name="phone"
-            value={formData.phone || ""}
+            value={formData.phone}
             onChange={handleChange}
-            placeholder="010-0000-0000"
+            placeholder="예: 010-1234-5678"
           />
         </div>
 
-        {/* 세 번째 행 */}
-        <div>
-          <label htmlFor="position" className="block text-sm font-medium mb-1">
-            <span className="flex items-center">
-              <Briefcase className="mr-1 text-amber-500 h-4 w-4" />
-              직위 *
-            </span>
-          </label>
-          <select
-            id="position"
+        <div className="space-y-2">
+          <label className="text-sm font-medium">직위</label>
+          <input
+            type="text"
             name="position"
-            value={formData.position || ""}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={formData.position}
             onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-md ${
-              errors.position ? "border-destructive" : "border-input"
-            } bg-background focus:outline-none focus:ring-2 focus:ring-primary`}
-          >
-            <option value="">직위 선택</option>
-            {positions.map((pos) => (
-              <option key={pos.id} value={pos.name}>
-                {pos.name}
-              </option>
-            ))}
-          </select>
-          {errors.position && (
-            <p className="mt-1 text-sm text-destructive">{errors.position}</p>
-          )}
+            placeholder="예: 사원, 대리, 과장 등"
+          />
         </div>
 
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium mb-1">
-            <span className="flex items-center">
-              <Award className="mr-1 text-amber-500 h-4 w-4" />
-              직책
-            </span>
-          </label>
-          <select
-            id="title"
+        <div className="space-y-2">
+          <label className="text-sm font-medium">직책</label>
+          <input
+            type="text"
             name="title"
-            value={formData.title || ""}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={formData.title}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="">직책 선택</option>
-            {titles.map((title) => (
-              <option key={title.id} value={title.name}>
-                {title.name}
-              </option>
-            ))}
-          </select>
+            placeholder="예: 팀장, 부장 등"
+          />
         </div>
 
-        {/* 네 번째 행 */}
-        <div>
-          <label
-            htmlFor="department"
-            className="block text-sm font-medium mb-1"
-          >
-            <span className="flex items-center">
-              <Building2 className="mr-1 text-purple-500 h-4 w-4" />
-              부서 *
-            </span>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">
+            부서 <span className="text-red-500">*</span>
           </label>
           <select
-            id="department"
             name="department"
-            value={formData.department || ""}
-            onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-md ${
-              errors.department ? "border-destructive" : "border-input"
-            } bg-background focus:outline-none focus:ring-2 focus:ring-primary`}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={formData.department}
+            onChange={handleDepartmentChange}
+            required
           >
             <option value="">부서 선택</option>
             {departments.map((dept) => (
@@ -416,25 +364,16 @@ const UserForm = ({
               </option>
             ))}
           </select>
-          {errors.department && (
-            <p className="mt-1 text-sm text-destructive">{errors.department}</p>
-          )}
         </div>
 
-        <div>
-          <label htmlFor="location" className="block text-sm font-medium mb-1">
-            <span className="flex items-center">
-              <MapPin className="mr-1 text-pink-500 h-4 w-4" />
-              위치
-            </span>
-          </label>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">위치</label>
           <select
-            id="location"
             name="location"
-            value={formData.location || ""}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-            disabled={true}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={formData.location}
+            onChange={handleLocationChange}
+            required
           >
             <option value="">위치 선택</option>
             {locations.map((loc) => (
@@ -443,86 +382,71 @@ const UserForm = ({
               </option>
             ))}
           </select>
+          {formData.department && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {departments.find((dept) => dept.name === formData.department)
+                ?.locationId
+                ? "부서에 연동된 위치가 자동으로 선택됩니다. 필요시 다른 위치를 선택할 수 있습니다."
+                : "이 부서는 특정 위치와 연동되어 있지 않습니다. 위치를 선택해주세요."}
+            </p>
+          )}
         </div>
 
-        {/* 다섯 번째 행 */}
-        <div>
-          <label htmlFor="joinDate" className="block text-sm font-medium mb-1">
-            <span className="flex items-center">
-              <Calendar className="mr-1 text-cyan-500 h-4 w-4" />
-              입사일
-            </span>
-          </label>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">근무형태</label>
+          <select
+            name="workType"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={formData.workType}
+            onChange={handleChange}
+          >
+            <option value="">근무형태 선택</option>
+            <option value="정규직">정규직</option>
+            <option value="시간제">시간제</option>
+            <option value="계약직">계약직</option>
+            <option value="임시직">임시직</option>
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">입사일</label>
           <DateInput
-            id="joinDate"
             name="joinDate"
-            value={formData.joinDate || ""}
+            value={formData.joinDate}
             onChange={handleChange}
           />
         </div>
 
-        <div>
-          <label htmlFor="status" className="block text-sm font-medium mb-1">
-            <span className="flex items-center">
-              <Shield className="mr-1 text-cyan-500 h-4 w-4" />
-              상태
-            </span>
-          </label>
-          <select
-            id="status"
-            name="status"
-            value={formData.status || "재직중"}
+        <div className="space-y-2 col-span-2">
+          <label className="text-sm font-medium">비고</label>
+          <textarea
+            name="notes"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={formData.notes}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="재직중">재직중</option>
-            <option value="휴직중">휴직중</option>
-            <option value="퇴사">퇴사</option>
-          </select>
-        </div>
-
-        {/* 여섯 번째 행 */}
-        <div className="md:col-span-2">
-          <label htmlFor="role" className="block text-sm font-medium mb-1">
-            <span className="flex items-center">
-              <Shield className="mr-1 text-indigo-500 h-4 w-4" />
-              권한
-            </span>
-          </label>
-          <select
-            id="role"
-            name="role"
-            value={formData.role || "사용자"}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="사용자">일반 사용자</option>
-            <option value="편집자">편집자</option>
-            <option value="관리자">관리자</option>
-          </select>
+            rows={3}
+            placeholder="간단한 메모를 입력하세요"
+          />
         </div>
       </div>
 
-      {/* 버튼 */}
-      <div className="flex justify-end space-x-3 pt-4">
-        <Link
-          to="/users"
-          className={`px-4 py-2 rounded-md ${getButtonVariantClass("outline")}`}
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          className="flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent disabled:opacity-50"
         >
-          <span className="flex items-center">
-            <X className="mr-2 h-4 w-4" />
-            취소
-          </span>
-        </Link>
+          <X className="h-4 w-4" />
+          취소
+        </button>
         <button
           type="submit"
-          className={`px-4 py-2 rounded-md ${getButtonVariantClass("primary")}`}
-          disabled={isUploading}
+          disabled={isSubmitting}
+          className="flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          <span className="flex items-center">
-            <Save className="mr-2 h-4 w-4" />
-            {isEditing ? "수정 완료" : "사용자 등록"}
-          </span>
+          <Save className="h-4 w-4" />
+          {isSubmitting ? "저장 중..." : "저장"}
         </button>
       </div>
     </form>

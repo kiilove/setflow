@@ -9,7 +9,6 @@ import {
   Briefcase,
   BadgeCheck,
   Calendar,
-  Shield,
   MapPin,
   Edit,
   Trash2,
@@ -21,6 +20,7 @@ import {
   X,
   Clock,
   User,
+  Award,
 } from "lucide-react";
 import PageContainer from "../../components/common/PageContainer";
 import {
@@ -29,6 +29,9 @@ import {
 } from "../../utils/themeUtils";
 import { useFirestore } from "../../hooks/useFirestore";
 import { useMessageContext } from "../../context/MessageContext";
+import { fetchUserData } from "../../utils/firebaseUtils";
+import { deleteFileFromStorage } from "../../utils/fileUtils";
+import BounceLoadingLogo from "../../components/common/BounceLoadingLogo";
 
 // QRCode 컴포넌트 대체 구현
 const SimpleQRCode = ({ value, size = 200 }) => {
@@ -97,93 +100,40 @@ const UsersDetail = () => {
   const [activeTab, setActiveTab] = useState("assets");
   const [showQRModal, setShowQRModal] = useState(false);
 
-  // 사용자 데이터 로드
   useEffect(() => {
     const fetchUser = async () => {
       try {
         setLoading(true);
-        const data = await getDocument(id);
+        setError(null);
 
-        if (!data) {
+        // Firestore에서 사용자 데이터 가져오기
+        const userData = await getDocument(id);
+        if (!userData) {
           throw new Error("사용자를 찾을 수 없습니다.");
         }
 
-        // 자산 및 문서 데이터 로드 (실제 구현에서는 API 호출)
-        // 예시 데이터
-        const userData = {
-          ...data,
-          assets: [
-            {
-              id: 1,
-              name: "MacBook Pro 16인치",
-              type: "노트북",
-              assignedDate: "2022-01-15",
-              status: "사용중",
-            },
-            {
-              id: 2,
-              name: "iPhone 13 Pro",
-              type: "모바일",
-              assignedDate: "2022-01-15",
-              status: "사용중",
-            },
-            {
-              id: 3,
-              name: "Dell 27인치 모니터",
-              type: "모니터",
-              assignedDate: "2022-01-15",
-              status: "사용중",
-            },
-          ],
-          history: [
-            {
-              id: 1,
-              date: "2023-11-25",
-              action: "로그인",
-              details: "시스템 로그인 (IP: 192.168.1.45)",
-            },
-            {
-              id: 2,
-              date: "2023-11-20",
-              action: "자산 반납",
-              details: "Samsung Galaxy S21 반납 처리",
-            },
-            {
-              id: 3,
-              date: "2023-11-15",
-              action: "정보 수정",
-              details: "연락처 정보 업데이트",
-            },
-          ],
-          documents: [
-            {
-              id: 1,
-              name: "입사 계약서",
-              type: "PDF",
-              uploadDate: "2020-03-15",
-              size: "2.4MB",
-            },
-            {
-              id: 2,
-              name: "보안 서약서",
-              type: "PDF",
-              uploadDate: "2020-03-15",
-              size: "1.1MB",
-            },
-          ],
-        };
+        // 암호화된 데이터 복호화
+        const decryptedData = await fetchUserData(id);
 
-        setUser(userData);
-      } catch (err) {
-        console.error("사용자 로딩 오류:", err);
-        setError(err.message);
+        // 원본 데이터와 복호화된 데이터 병합
+        setUser({
+          ...userData,
+          ...decryptedData,
+        });
+      } catch (error) {
+        console.error("사용자 데이터 로드 중 오류 발생:", error);
+        setError(error.message);
+        showError(
+          "데이터 로드 실패",
+          "사용자 데이터를 불러오는데 실패했습니다."
+        );
       } finally {
         setLoading(false);
       }
     };
 
     fetchUser();
-  }, [id, getDocument]);
+  }, [id, getDocument, showError]);
 
   // 사용자 삭제 핸들러
   const handleDelete = async () => {
@@ -199,22 +149,26 @@ const UsersDetail = () => {
 
     if (confirmed) {
       try {
+        // 프로필 이미지가 있는 경우 삭제
+        if (user.profileImage) {
+          await deleteFileFromStorage(user.profileImage);
+        }
+
         await deleteDocument(id);
         showSuccess("사용자 삭제 완료", "사용자가 성공적으로 삭제되었습니다.");
         navigate("/users");
       } catch (error) {
         console.error("사용자 삭제 중 오류가 발생했습니다:", error);
-        showError("��제 오류", "사용자 삭제에 실패했습니다.");
+        showError("삭제 오류", "사용자 삭제에 실패했습니다.");
       }
     }
   };
 
   if (loading) {
     return (
-      <PageContainer title="사용자 상세 정보">
+      <PageContainer title="사용자 정보">
         <div className="flex justify-center items-center h-64">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <span className="ml-2 text-muted-foreground">로딩 중...</span>
+          <BounceLoadingLogo />
         </div>
       </PageContainer>
     );
@@ -306,52 +260,98 @@ const UsersDetail = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <InfoItem
-                icon={<Mail className="text-blue-500" />}
-                label="이메일"
-                value={user.email}
-              />
-              <InfoItem
-                icon={<Phone className="text-green-500" />}
-                label="전화번호"
-                value={user.phone || "-"}
-              />
-              <InfoItem
-                icon={<Building2 className="text-purple-500" />}
-                label="부서"
-                value={user.department}
-              />
-              <InfoItem
-                icon={<Briefcase className="text-yellow-500" />}
-                label="직책"
-                value={user.position}
-              />
-              <InfoItem
-                icon={<BadgeCheck className="text-red-500" />}
-                label="사원번호"
-                value={user.employeeId}
-              />
-              <InfoItem
-                icon={<Calendar className="text-teal-500" />}
-                label="입사일"
-                value={formatDate(user.joinDate)}
-              />
-              <InfoItem
-                icon={<Shield className="text-indigo-500" />}
-                label="권한"
-                value={user.role}
-              />
-              <InfoItem
-                icon={<MapPin className="text-pink-500" />}
-                label="위치"
-                value={user.location || "-"}
-              />
-              <InfoItem
-                icon={<Clock className="text-gray-500" />}
-                label="마지막 로그인"
-                value={user.lastLogin || "-"}
-              />
+            <div className="space-y-6">
+              {/* 기본 정보 */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  기본 정보
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <InfoItem
+                    icon={<BadgeCheck className="text-purple-500" />}
+                    label="사원번호"
+                    value={user.employeeNumber}
+                  />
+                  <InfoItem
+                    icon={<User className="text-blue-500" />}
+                    label="성별"
+                    value={user.gender || "-"}
+                  />
+                  <InfoItem
+                    icon={<Calendar className="text-yellow-500" />}
+                    label="입사일"
+                    value={formatDate(user.joinDate)}
+                  />
+                </div>
+                {user.notes && (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                      비고
+                    </h3>
+                    <div className="bg-muted/50 p-4 rounded-md">
+                      <p className="text-sm">{user.notes}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 연락처 정보 */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  연락처 정보
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <InfoItem
+                    icon={<Mail className="text-green-500" />}
+                    label="이메일"
+                    value={user.email}
+                  />
+                  <InfoItem
+                    icon={<Phone className="text-red-500" />}
+                    label="사내번호"
+                    value={user.extension || "-"}
+                  />
+                  <InfoItem
+                    icon={<Phone className="text-teal-500" />}
+                    label="개인연락처"
+                    value={user.phone || "-"}
+                  />
+                </div>
+              </div>
+
+              {/* 직무 정보 */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  직무 정보
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <InfoItem
+                    icon={<Briefcase className="text-indigo-500" />}
+                    label="직위"
+                    value={user.position || "-"}
+                  />
+                  <InfoItem
+                    icon={<Award className="text-pink-500" />}
+                    label="직책"
+                    value={user.title || "-"}
+                  />
+                  <InfoItem
+                    icon={<Building2 className="text-gray-500" />}
+                    label="부서"
+                    value={user.department || "-"}
+                  />
+                  <InfoItem
+                    icon={<MapPin className="text-orange-500" />}
+                    label="위치"
+                    value={user.location || "-"}
+                  />
+                  <InfoItem
+                    icon={<Clock className="text-cyan-500" />}
+                    label="근무형태"
+                    value={user.workType || "-"}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>

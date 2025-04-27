@@ -93,7 +93,7 @@ const CompanySettings = () => {
                 name="companyName"
                 value={companySettings.companyName}
                 onChange={handleSettingChange}
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
               />
             </div>
             <div>
@@ -110,7 +110,7 @@ const CompanySettings = () => {
                 value={companySettings.businessRegistrationNumber}
                 onChange={handleSettingChange}
                 placeholder="000-00-00000"
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
               />
             </div>
             <div>
@@ -126,7 +126,7 @@ const CompanySettings = () => {
                 name="representativeName"
                 value={companySettings.representativeName}
                 onChange={handleSettingChange}
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
               />
             </div>
             <div>
@@ -142,7 +142,7 @@ const CompanySettings = () => {
                 name="establishmentDate"
                 value={companySettings.establishmentDate}
                 onChange={handleSettingChange}
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
               />
             </div>
           </div>
@@ -172,7 +172,7 @@ const CompanySettings = () => {
                 name="businessType"
                 value={companySettings.businessType}
                 onChange={handleSettingChange}
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
               />
             </div>
             <div>
@@ -188,7 +188,7 @@ const CompanySettings = () => {
                 name="businessCategory"
                 value={companySettings.businessCategory}
                 onChange={handleSettingChange}
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
               />
             </div>
           </div>
@@ -218,7 +218,7 @@ const CompanySettings = () => {
                 name="address"
                 value={companySettings.address}
                 onChange={handleSettingChange}
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
               />
             </div>
             <div>
@@ -234,7 +234,7 @@ const CompanySettings = () => {
                 name="phoneNumber"
                 value={companySettings.phoneNumber}
                 onChange={handleSettingChange}
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
               />
             </div>
             <div>
@@ -250,7 +250,7 @@ const CompanySettings = () => {
                 name="email"
                 value={companySettings.email}
                 onChange={handleSettingChange}
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
               />
             </div>
             <div>
@@ -266,7 +266,7 @@ const CompanySettings = () => {
                 name="website"
                 value={companySettings.website}
                 onChange={handleSettingChange}
-                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground theme-transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
               />
             </div>
           </div>

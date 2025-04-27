@@ -46,6 +46,14 @@ const DataTable = ({
   pageSize,
   totalItems,
 }) => {
+  // 디버깅 로그 추가
+  console.log("DataTable Debug:", {
+    columns,
+    firstItem: data[0],
+    columnIds: columns.map((col) => col.id),
+    itemKeys: data[0] ? Object.keys(data[0]) : [],
+  });
+
   // 전체 선택 상태 계산
   const allSelected = data.length > 0 && selectedItems.length === data.length;
   const someSelected =
@@ -172,60 +180,85 @@ const DataTable = ({
                 </td>
               </tr>
             ) : (
-              data.map((item, index) => (
-                <tr
-                  key={item.id || index}
-                  className={`hover:bg-muted/50 transition-colors ${
-                    onRowClick || clickableColumn ? "cursor-pointer" : ""
-                  }`}
-                  onClick={(e) => handleRowClick(item, index, e)}
-                >
-                  {showCheckbox && (
-                    <td
-                      className="px-4 py-4"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-center">
-                        <input
-                          type="checkbox"
-                          className="rounded border-gray-300 text-primary focus:ring-primary"
-                          checked={selectedItems.includes(item.id)}
-                          onChange={(e) =>
-                            onSelectItem &&
-                            onSelectItem(item.id, e.target.checked)
-                          }
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                    </td>
-                  )}
-                  {columns.map((column) => (
-                    <td
-                      key={column.id}
-                      className={`px-6 py-4 whitespace-nowrap text-sm ${
-                        column.id === clickableColumn?.id
-                          ? "text-primary hover:text-primary/80 font-medium"
-                          : "text-foreground"
-                      } ${column.className || ""}`}
-                    >
-                      {column.render
+              data.map((item, index) => {
+                // 각 행의 데이터 렌더링 디버깅
+                console.log("Rendering row:", {
+                  item,
+                  index,
+                  columns: columns.map((col) => ({
+                    id: col.id,
+                    value: item[col.id],
+                    hasRender: !!col.render,
+                    hasAccessor: !!col.accessor,
+                  })),
+                });
+
+                return (
+                  <tr
+                    key={item.id || index}
+                    className={`hover:bg-muted/50 transition-colors ${
+                      onRowClick || clickableColumn ? "cursor-pointer" : ""
+                    }`}
+                    onClick={(e) => handleRowClick(item, index, e)}
+                  >
+                    {showCheckbox && (
+                      <td
+                        className="px-4 py-4"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300 text-primary focus:ring-primary"
+                            checked={selectedItems.includes(item.id)}
+                            onChange={(e) =>
+                              onSelectItem &&
+                              onSelectItem(item.id, e.target.checked)
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </td>
+                    )}
+                    {columns.map((column) => {
+                      // 각 셀의 데이터 렌더링 디버깅
+                      const cellValue = column.render
                         ? column.render(item)
                         : column.accessor
                         ? column.accessor(item)
-                        : item[column.id]}
-                    </td>
-                  ))}
-                  {actions && (
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                      <div onClick={(e) => e.stopPropagation()}>
-                        {typeof actions === "function"
-                          ? actions(item)
-                          : actions}
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))
+                        : item[column.id];
+
+                      console.log("Rendering cell:", {
+                        columnId: column.id,
+                        value: cellValue,
+                        itemValue: item[column.id],
+                      });
+
+                      return (
+                        <td
+                          key={column.id}
+                          className={`px-6 py-4 whitespace-nowrap text-sm ${
+                            column.id === clickableColumn?.id
+                              ? "text-primary hover:text-primary/80 font-medium"
+                              : "text-foreground"
+                          } ${column.className || ""}`}
+                        >
+                          {cellValue}
+                        </td>
+                      );
+                    })}
+                    {actions && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                        <div onClick={(e) => e.stopPropagation()}>
+                          {typeof actions === "function"
+                            ? actions(item)
+                            : actions}
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

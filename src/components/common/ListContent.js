@@ -46,94 +46,135 @@ const ListContent = ({
   pageSize,
   totalItems,
 }) => {
-  return (
-    <>
-      {data.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="40"
-            height="40"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="mb-2 text-muted-foreground/60"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" x2="12" y1="8" y2="12" />
-            <line x1="12" x2="12.01" y1="16" y2="16" />
-          </svg>
-          {emptyMessage}
-        </div>
-      ) : viewMode === "table" ? (
-        <DataTable
-          data={data}
-          columns={columns}
-          showCheckbox={true}
-          selectedItems={selectedItems}
-          onSelectItem={onSelectItem}
-          onSelectAll={onSelectAll}
-          clickableColumn={clickableColumn}
-          sortConfig={sortConfig}
-          onSort={onSort}
-          loading={loading}
-          emptyMessage={emptyMessage}
-          actions={renderActions}
-          pagination={true}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={onPageChange}
-          pageSize={pageSize}
-          totalItems={totalItems}
-        />
-      ) : (
-        <div>
-          <DataGrid
-            data={data}
-            renderItem={renderGridItem}
-            loading={loading}
-            emptyMessage={emptyMessage}
-          />
+  // 데이터와 컬럼 정보 로깅
+  console.log("ListContent Props:", {
+    viewMode,
+    dataLength: data?.length,
+    columns,
+    loading,
+    currentPage,
+    totalPages,
+    pageSize,
+    totalItems,
+    sortConfig,
+    clickableColumn,
+  });
 
-          {/* 그리드 뷰에서도 페이지네이션 표시 */}
-          {data.length > 0 && (
-            <div className="mt-4 px-1">
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-muted-foreground">
-                  {totalItems > 0
-                    ? `전체 ${totalItems}개 중 ${
-                        (currentPage - 1) * pageSize + 1
-                      }-${Math.min(currentPage * pageSize, totalItems)}번 항목`
-                    : "표시할 항목이 없습니다"}
-                </div>
-                <div className="flex space-x-1">
-                  <button
-                    onClick={() => onPageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-2 h-8 rounded border border-input bg-background hover:bg-muted transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center"
-                  >
-                    이전
-                  </button>
-                  <span className="px-3 h-8 flex items-center justify-center">
-                    {currentPage} / {totalPages}
-                  </span>
-                  <button
-                    onClick={() => onPageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages || totalPages === 0}
-                    className="px-2 h-8 rounded border border-input bg-background hover:bg-muted transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center"
-                  >
-                    다음
-                  </button>
-                </div>
-              </div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="40"
+          height="40"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="mb-2 text-muted-foreground/60"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" x2="12" y1="8" y2="12" />
+          <line x1="12" x2="12.01" y1="16" y2="16" />
+        </svg>
+        {emptyMessage || "데이터가 없습니다."}
+      </div>
+    );
+  }
+
+  return viewMode === "table" ? (
+    <>
+      {console.log("DataTable Props:", {
+        data: data.slice(0, 2), // 처음 2개 항목만 로깅
+        columns,
+        showCheckbox: true,
+        selectedItems,
+        clickableColumn,
+        sortConfig,
+        loading,
+        emptyMessage,
+        actions: renderActions,
+        pagination: true,
+        currentPage,
+        totalPages,
+        onPageChange,
+        pageSize,
+        totalItems,
+      })}
+      <DataTable
+        data={data}
+        columns={columns}
+        showCheckbox={true}
+        selectedItems={selectedItems}
+        onSelectItem={onSelectItem}
+        onSelectAll={onSelectAll}
+        clickableColumn={clickableColumn}
+        sortConfig={sortConfig}
+        onSort={onSort}
+        loading={loading}
+        emptyMessage={emptyMessage}
+        actions={renderActions}
+        pagination={true}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
+        pageSize={pageSize}
+        totalItems={totalItems}
+      />
+    </>
+  ) : (
+    <div>
+      <DataGrid
+        data={data}
+        renderItem={renderGridItem}
+        loading={loading}
+        emptyMessage={emptyMessage}
+      />
+
+      {/* 그리드 뷰에서도 페이지네이션 표시 */}
+      {data.length > 0 && (
+        <div className="mt-4 px-1">
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-muted-foreground">
+              {totalItems > 0
+                ? `전체 ${totalItems}개 중 ${
+                    (currentPage - 1) * pageSize + 1
+                  }-${Math.min(currentPage * pageSize, totalItems)}번 항목`
+                : "표시할 항목이 없습니다"}
             </div>
-          )}
+            <div className="flex space-x-1">
+              <button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-2 h-8 rounded border border-input bg-background hover:bg-muted transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center"
+              >
+                이전
+              </button>
+              <span className="px-3 h-8 flex items-center justify-center">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="px-2 h-8 rounded border border-input bg-background hover:bg-muted transition-colors disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center"
+              >
+                다음
+              </button>
+            </div>
+          </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 

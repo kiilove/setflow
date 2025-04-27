@@ -9,7 +9,7 @@ import {
   MapPin,
 } from "lucide-react";
 
-const SettingsMenu = () => {
+const SettingsMenu = ({ onSelect }) => {
   const location = useLocation();
 
   const menuItems = [
@@ -45,34 +45,33 @@ const SettingsMenu = () => {
     },
   ];
 
+  const handleClick = () => {
+    if (onSelect) {
+      onSelect();
+    }
+  };
+
   return (
-    <div className="w-64 bg-card border-r border-border h-full">
-      <div className="p-4">
-        <h2 className="text-lg font-semibold mb-4">설정</h2>
-        <ul className="space-y-1">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            const Icon = item.icon;
-            return (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-                    isActive
-                      ? "bg-primary/10 text-primary border-l-4 border-primary"
-                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                  }`}
-                >
-                  <Icon
-                    className={`h-5 w-5 ${isActive ? "text-primary" : ""}`}
-                  />
-                  <span className="font-medium">{item.title}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+    <div className="space-y-1">
+      {menuItems.map((item) => {
+        const isActive = location.pathname === item.path;
+        const Icon = item.icon;
+        return (
+          <Link
+            key={item.path}
+            to={item.path}
+            onClick={handleClick}
+            className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+              isActive
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+            }`}
+          >
+            <Icon className={`h-5 w-5 ${isActive ? "text-primary" : ""}`} />
+            <span className="font-medium">{item.title}</span>
+          </Link>
+        );
+      })}
     </div>
   );
 };
