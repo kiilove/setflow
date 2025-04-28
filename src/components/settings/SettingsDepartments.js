@@ -3,6 +3,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { useMessageContext } from "../../context/MessageContext";
+import { useAuth } from "../../context/AuthContext";
 import {
   Users,
   Plus,
@@ -16,12 +17,13 @@ import {
 import * as Icons from "lucide-react";
 import DepartmentIconSelector from "../departments/DepartmentIconSelector";
 import DepartmentForm from "../departments/DepartmentForm";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import ModalMessage from "../common/ModalMessage";
 
 const SettingsDepartments = () => {
   const { showSuccess, showError } = useMessageContext();
+  const { userUUID } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState([]);
@@ -48,7 +50,7 @@ const SettingsDepartments = () => {
   const loadDepartments = async () => {
     try {
       setLoading(true);
-      const docRef = doc(db, "settings", "departments");
+      const docRef = doc(db, `clients/${userUUID}/settings`, "departments");
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
@@ -67,7 +69,7 @@ const SettingsDepartments = () => {
   const loadLocations = async () => {
     try {
       setLoadingLocations(true);
-      const docRef = doc(db, "settings", "locations");
+      const docRef = doc(db, `clients/${userUUID}/settings`, "locations");
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
@@ -78,6 +80,7 @@ const SettingsDepartments = () => {
       }
     } catch (error) {
       console.error("위치 데이터를 불러오는 중 오류가 발생했습니다:", error);
+      showError("오류", "위치 목록을 불러오는데 실패했습니다.");
     } finally {
       setLoadingLocations(false);
     }
@@ -101,7 +104,7 @@ const SettingsDepartments = () => {
 
   const handleSubmit = async (data) => {
     try {
-      const docRef = doc(db, "settings", "departments");
+      const docRef = doc(db, `clients/${userUUID}/settings`, "departments");
       const docSnap = await getDoc(docRef);
 
       let updatedDepartments = [];
@@ -123,7 +126,28 @@ const SettingsDepartments = () => {
         updatedDepartments.push({ ...data, id: newId });
       }
 
-      await setDoc(docRef, { departments: updatedDepartments });
+      // 저장할 데이터를 변수에 담기
+      const dataToSave = {
+        departments: updatedDepartments,
+        updatedAt: serverTimestamp(),
+      };
+
+      // 저장 전 데이터 로깅
+      console.log("=== 저장 전 데이터 ===");
+      console.log("전체 데이터:", dataToSave);
+
+      // 문서가 존재하든 없든 setDoc을 사용하여 전체 문서를 덮어씁니다
+      await setDoc(docRef, {
+        ...dataToSave,
+        createdAt: docSnap.exists()
+          ? docSnap.data().createdAt
+          : serverTimestamp(),
+      });
+
+      // 저장 후 데이터 로깅
+      console.log("=== 저장 후 데이터 ===");
+      console.log("전체 데이터:", dataToSave);
+
       showSuccess(
         "저장 완료",
         editingDepartment ? "부서가 수정되었습니다." : "부서가 추가되었습니다."
@@ -154,7 +178,7 @@ const SettingsDepartments = () => {
     if (!departmentToDelete) return;
 
     try {
-      const docRef = doc(db, "settings", "departments");
+      const docRef = doc(db, `clients/${userUUID}/settings`, "departments");
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {

@@ -4,41 +4,50 @@ import { useFirestore } from "../../hooks/useFirestore";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase/config";
 import { useMessageContext } from "../../context/MessageContext";
+import { useAuth } from "../../context/AuthContext";
 import { Button } from "../ui/Button";
 import { CheckCircle, Info, Plus, Trash2, Save } from "lucide-react";
 
 const SettingsDepreciation = () => {
   const { showSuccess, showError } = useMessageContext();
   const { updateDocument } = useFirestore("settings");
+  const { userUUID } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [depreciationSettings, setDepreciationSettings] = useState({
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const initialSettings = {
     methods: [
       {
-        method: "straight-line",
+        method: "정액법",
+        description: "매년 똑같은 금액을 상각하는 방법",
         salvageValue: 0,
         salvageValueType: "percentage",
         minDepreciationPeriod: 3,
       },
       {
-        method: "declining-balance",
+        method: "정률법",
+        description: "매년 남은 가치의 일정 비율을 상각하는 방법",
         salvageValue: 10,
         salvageValueType: "percentage",
         minDepreciationPeriod: 5,
       },
       {
-        method: "double-declining",
+        method: "이중체감법",
+        description: "정률법보다 2배 빠르게 상각하는 방법",
         salvageValue: 10,
         salvageValueType: "percentage",
         minDepreciationPeriod: 5,
       },
       {
-        method: "units-of-production",
+        method: "생산량비례법",
+        description: "사용량에 따라 상각하는 방법",
         salvageValue: 0,
         salvageValueType: "percentage",
         minDepreciationPeriod: 3,
       },
       {
-        method: "sum-of-years-digits",
+        method: "연수합계법",
+        description: "초기에는 많이, 후기에는 적게 상각하는 방법",
         salvageValue: 0,
         salvageValueType: "percentage",
         minDepreciationPeriod: 3,
@@ -47,23 +56,28 @@ const SettingsDepreciation = () => {
     fiscalYear: "calendar",
     fiscalYearStart: "01-01",
     fiscalYearEnd: "12-31",
-  });
-  const [successMessage, setSuccessMessage] = useState("");
+  };
+
+  const [depreciationSettings, setDepreciationSettings] =
+    useState(initialSettings);
 
   useEffect(() => {
-    loadDepreciationSettings();
-  }, []);
+    if (userUUID) {
+      loadDepreciationSettings();
+    }
+  }, [userUUID]);
 
   const loadDepreciationSettings = async () => {
     try {
       setLoading(true);
-      const docRef = doc(db, "settings", "depreciation");
+      const docRef = doc(db, `clients/${userUUID}/settings`, "depreciation");
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
         const data = docSnap.data();
+        console.log("Firestore에서 로드된 데이터:", data);
         setDepreciationSettings({
-          methods: data.methods || depreciationSettings.methods,
+          methods: data.methods || [],
           fiscalYear: data.fiscalYear || "calendar",
           fiscalYearStart: data.fiscalYearStart || "01-01",
           fiscalYearEnd: data.fiscalYearEnd || "12-31",
@@ -71,10 +85,11 @@ const SettingsDepreciation = () => {
       } else {
         // 최초 등록 시 기본값으로 문서 생성
         await setDoc(docRef, {
-          ...depreciationSettings,
+          ...initialSettings,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
+        setDepreciationSettings(initialSettings);
       }
     } catch (error) {
       console.error("감가상각 설정을 불러오는 중 오류가 발생했습니다:", error);
@@ -86,7 +101,44 @@ const SettingsDepreciation = () => {
 
   const handleSave = async () => {
     try {
-      await updateDocument("depreciation", depreciationSettings);
+      const docRef = doc(db, `clients/${userUUID}/settings`, "depreciation");
+      const docSnap = await getDoc(docRef);
+
+      // 저장할 데이터를 변수에 담기
+      const dataToSave = {
+        methods: depreciationSettings.methods,
+        fiscalYear: depreciationSettings.fiscalYear,
+        fiscalYearStart: depreciationSettings.fiscalYearStart,
+        fiscalYearEnd: depreciationSettings.fiscalYearEnd,
+        updatedAt: serverTimestamp(),
+      };
+
+      // 저장 전 데이터 로깅
+      console.log("=== 저장 전 데이터 ===");
+      console.log("전체 데이터:", dataToSave);
+      console.log("methods 배열:", dataToSave.methods);
+      console.log("각 method의 상세 정보:");
+      dataToSave.methods.forEach((method, index) => {
+        console.log(`Method ${index}:`, method);
+      });
+
+      // 문서가 존재하든 없든 setDoc을 사용하여 전체 문서를 덮어씁니다
+      await setDoc(docRef, {
+        ...dataToSave,
+        createdAt: docSnap.exists()
+          ? docSnap.data().createdAt
+          : serverTimestamp(),
+      });
+
+      // 저장 후 데이터 로깅
+      console.log("=== 저장 후 데이터 ===");
+      console.log("전체 데이터:", dataToSave);
+      console.log("methods 배열:", dataToSave.methods);
+      console.log("각 method의 상세 정보:");
+      dataToSave.methods.forEach((method, index) => {
+        console.log(`Method ${index}:`, method);
+      });
+
       showSuccess("저장 완료", "감가상각 설정이 저장되었습니다.");
     } catch (error) {
       console.error("감가상각 설정을 저장하는 중 오류가 발생했습니다:", error);
@@ -95,11 +147,17 @@ const SettingsDepreciation = () => {
   };
 
   const handleMethodChange = (index, field, value) => {
+    console.log("handleMethodChange 호출:", { index, field, value });
+    console.log("현재 methods 상태:", depreciationSettings.methods);
+
     const updatedMethods = [...depreciationSettings.methods];
     updatedMethods[index] = {
       ...updatedMethods[index],
       [field]: value,
     };
+
+    console.log("업데이트된 methods:", updatedMethods);
+
     setDepreciationSettings({
       ...depreciationSettings,
       methods: updatedMethods,
@@ -111,27 +169,43 @@ const SettingsDepreciation = () => {
       ...depreciationSettings,
       [field]: value,
     });
+    // 디버깅을 위한 로그 추가
+    console.log("회계연도 변경 후 상태:", {
+      ...depreciationSettings,
+      [field]: value,
+    });
   };
 
   const addNewMethod = () => {
+    console.log("addNewMethod 호출");
+    console.log("현재 methods 상태:", depreciationSettings.methods);
+
+    const newMethod = {
+      method: "정액법",
+      salvageValue: 0,
+      salvageValueType: "percentage",
+      minDepreciationPeriod: 1,
+    };
+
+    const updatedMethods = [...depreciationSettings.methods, newMethod];
+    console.log("새로운 method 추가 후:", updatedMethods);
+
     setDepreciationSettings({
       ...depreciationSettings,
-      methods: [
-        ...depreciationSettings.methods,
-        {
-          method: "straight-line",
-          salvageValue: 0,
-          salvageValueType: "percentage",
-          minDepreciationPeriod: 1,
-        },
-      ],
+      methods: updatedMethods,
     });
   };
 
   const removeMethod = (index) => {
+    console.log("removeMethod 호출:", index);
+    console.log("현재 methods 상태:", depreciationSettings.methods);
+
     const updatedMethods = depreciationSettings.methods.filter(
       (_, i) => i !== index
     );
+
+    console.log("method 제거 후:", updatedMethods);
+
     setDepreciationSettings({
       ...depreciationSettings,
       methods: updatedMethods,
@@ -311,27 +385,10 @@ const SettingsDepreciation = () => {
                 className="space-y-4 p-4 border border-border rounded-lg"
               >
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    {method.method === "straight-line" && "정액법"}
-                    {method.method === "declining-balance" && "정률법"}
-                    {method.method === "double-declining" && "이중체감법"}
-                    {method.method === "units-of-production" && "생산량비례법"}
-                    {method.method === "sum-of-years-digits" && "연수합계법"}
-                  </label>
+                  <label className="text-sm font-medium">{method.method}</label>
                   <div className="flex items-start gap-2 text-sm text-muted-foreground">
                     <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <div>
-                      {method.method === "straight-line" &&
-                        "매년 똑같은 금액을 상각하는 방법"}
-                      {method.method === "declining-balance" &&
-                        "매년 남은 가치의 일정 비율을 상각하는 방법"}
-                      {method.method === "double-declining" &&
-                        "정률법보다 2배 빠르게 상각하는 방법"}
-                      {method.method === "units-of-production" &&
-                        "사용량에 따라 상각하는 방법"}
-                      {method.method === "sum-of-years-digits" &&
-                        "초기에는 많이, 후기에는 적게 상각하는 방법"}
-                    </div>
+                    <div>{method.description}</div>
                   </div>
                 </div>
 

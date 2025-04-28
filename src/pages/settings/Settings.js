@@ -33,13 +33,13 @@ const Settings = () => {
     },
     {
       title: "부서 관리",
-      path: "/settings/company/departments",
+      path: "/settings/departments",
       icon: Users,
       color: "bg-green-500",
     },
     {
       title: "위치 관리",
-      path: "/settings/company/locations",
+      path: "/settings/locations",
       icon: MapPin,
       color: "bg-purple-500",
     },
@@ -51,7 +51,7 @@ const Settings = () => {
     },
     {
       title: "알림 설정",
-      path: "/settings/system/notifications",
+      path: "/settings/notifications",
       icon: Bell,
       color: "bg-red-500",
     },
@@ -143,16 +143,10 @@ const Settings = () => {
               element={<Navigate to="/settings/company" replace />}
             />
             <Route path="company" element={<SettingsCompany />} />
-            <Route
-              path="company/departments"
-              element={<SettingsDepartments />}
-            />
-            <Route path="company/locations" element={<SettingsLocations />} />
+            <Route path="departments" element={<SettingsDepartments />} />
+            <Route path="locations" element={<SettingsLocations />} />
             <Route path="depreciation" element={<SettingsDepreciation />} />
-            <Route
-              path="system/notifications"
-              element={<SettingsNotifications />}
-            />
+            <Route path="notifications" element={<SettingsNotifications />} />
             <Route path="admin" element={<SettingsAdmin />} />
           </Routes>
         </div>

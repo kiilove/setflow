@@ -20,12 +20,12 @@ const SettingsMenu = ({ onSelect }) => {
     },
     {
       title: "부서 관리",
-      path: "/settings/company/departments",
+      path: "/settings/departments",
       icon: Users,
     },
     {
       title: "위치 관리",
-      path: "/settings/company/locations",
+      path: "/settings/locations",
       icon: MapPin,
     },
     {
@@ -35,7 +35,7 @@ const SettingsMenu = ({ onSelect }) => {
     },
     {
       title: "알림 설정",
-      path: "/settings/system/notifications",
+      path: "/settings/notifications",
       icon: Bell,
     },
     {

@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageContainer from "../../components/common/PageContainer";
 import UserForm from "../../components/users/UserForm";
-import { useFirestore } from "../../hooks/useFirestore";
+import { useFirestoreSubcollection } from "../../hooks/useFirestoreSubcollection";
+import { useAuth } from "../../context/AuthContext";
 import { useMessageContext } from "../../context/MessageContext";
 import uploadImage from "../../hooks/useImageUpload";
 import { sanitizeEmptyValues } from "../../utils/objectUtils";
@@ -14,9 +15,22 @@ import BounceLoadingLogo from "../../components/common/BounceLoadingLogo";
 const UsersEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getDocument, updateDocument } = useFirestore("users");
-  const { getDocument: getDepartments } = useFirestore("settings");
-  const { getDocument: getLocations } = useFirestore("settings");
+  const { userUUID } = useAuth();
+  const { getDocument, updateDocument } = useFirestoreSubcollection(
+    "clients",
+    userUUID,
+    "users"
+  );
+  const { getDocument: getDepartments } = useFirestoreSubcollection(
+    "clients",
+    userUUID,
+    "settings"
+  );
+  const { getDocument: getLocations } = useFirestoreSubcollection(
+    "clients",
+    userUUID,
+    "settings"
+  );
   const { showSuccess, showError } = useMessageContext();
 
   const [user, setUser] = useState(null);

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getAuth } from "firebase/auth";
 
 // 인증 상태를 확인하는 컴포넌트
 const CheckAuth = () => {
@@ -26,8 +27,8 @@ const CheckAuth = () => {
 
 // 인증 상태 확인 함수
 export const isAuthenticated = () => {
-  const authUser = localStorage.getItem("authUser");
-  return !!authUser;
+  const auth = getAuth();
+  return !!auth.currentUser;
 };
 
 // 현재 인증된 사용자 정보 가져오기

@@ -27,7 +27,8 @@ import {
   getButtonVariantClass,
   getStatusColorClass,
 } from "../../utils/themeUtils";
-import { useFirestore } from "../../hooks/useFirestore";
+import { useFirestoreSubcollection } from "../../hooks/useFirestoreSubcollection";
+import { useAuth } from "../../context/AuthContext";
 import { useMessageContext } from "../../context/MessageContext";
 import { fetchUserData } from "../../utils/firebaseUtils";
 import { deleteFileFromStorage } from "../../utils/fileUtils";
@@ -91,7 +92,12 @@ const TabButton = ({ active, onClick, icon, label }) => (
 const UsersDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getDocument, deleteDocument } = useFirestore("users");
+  const { userUUID } = useAuth();
+  const { getDocument, deleteDocument } = useFirestoreSubcollection(
+    "clients",
+    userUUID,
+    "users"
+  );
   const { showConfirm, showSuccess, showError } = useMessageContext();
 
   const [user, setUser] = useState(null);

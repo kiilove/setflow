@@ -1,33 +1,36 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, Bell, Sun, Moon, Settings, LogOut, User } from "lucide-react";
-import { getCurrentUser, logout } from "../../utils/checkAuth";
+import { getAuth, signOut } from "firebase/auth";
 import Breadcrumb from "../navigation/Breadcrumb";
+import { useAuth } from "../../context/AuthContext";
 
 const Header = ({ toggleSidebar, toggleTheme, theme }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const auth = getAuth();
 
+  // Firebase Auth 정보 출력
   useEffect(() => {
-    // 현재 인증된 사용자 정보 가져오기
-    const authUser = getCurrentUser();
-    if (authUser) {
-      setUser(authUser);
-    } else {
-      // 인증 정보가 없을 경우 기본 사용자 정보 설정
-      setUser({
-        name: "게스트",
-        email: "guest@example.com",
-      });
-    }
-  }, []);
+    console.log("[Header] Firebase Auth 정보:", {
+      currentUser: auth.currentUser,
+      userContext: user,
+      authState: auth,
+    });
+  }, [auth, user]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate("/auth/login");
+    } catch (error) {
+      console.error("로그아웃 에러:", error);
+    }
   };
 
   return (
@@ -119,17 +122,17 @@ const Header = ({ toggleSidebar, toggleTheme, theme }) => {
               className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent hover:text-accent-foreground"
             >
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                {user?.name?.charAt(0).toUpperCase() || "U"}
+                {user?.displayName?.charAt(0).toUpperCase() || "U"}
               </div>
               <span className="hidden md:inline-block font-medium">
-                {user?.name || "사용자"}
+                {user?.displayName || "사용자"}
               </span>
             </button>
 
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-card rounded-md shadow-lg border border-border z-50">
                 <div className="p-3 border-b border-border">
-                  <p className="font-medium">{user?.name || "사용자"}</p>
+                  <p className="font-medium">{user?.displayName || "사용자"}</p>
                   <p className="text-xs text-muted-foreground">
                     {user?.email || "user@example.com"}
                   </p>
@@ -144,7 +147,7 @@ const Header = ({ toggleSidebar, toggleTheme, theme }) => {
                     프로필
                   </Link>
                   <Link
-                    to="/settings"
+                    to="/settings/company"
                     className="flex items-center px-4 py-2 hover:bg-muted/50 w-full text-left"
                     onClick={() => setDropdownOpen(false)}
                   >

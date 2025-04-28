@@ -2,14 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { useMessageContext } from "../../context/MessageContext";
+import { useAuth } from "../../context/AuthContext";
 import { MapPin, Plus, Pencil, Trash2, X, ArrowLeft } from "lucide-react";
 import LocationForm from "../locations/LocationForm";
-import { doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { db } from "../../firebase/config";
 import ModalMessage from "../common/ModalMessage";
 
 const SettingsLocations = () => {
   const { showSuccess, showError } = useMessageContext();
+  const { userUUID } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [locations, setLocations] = useState([]);
@@ -31,7 +40,7 @@ const SettingsLocations = () => {
   const loadLocations = async () => {
     try {
       setLoading(true);
-      const docRef = doc(db, "settings", "locations");
+      const docRef = doc(db, `clients/${userUUID}/settings`, "locations");
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
@@ -49,7 +58,7 @@ const SettingsLocations = () => {
 
   const handleSubmit = async (data) => {
     try {
-      const docRef = doc(db, "settings", "locations");
+      const docRef = doc(db, `clients/${userUUID}/settings`, "locations");
       const docSnap = await getDoc(docRef);
 
       let updatedLocations = [];
@@ -60,7 +69,7 @@ const SettingsLocations = () => {
       if (editingLocation) {
         // 수정
         const index = updatedLocations.findIndex(
-          (loc) => loc.id === editingLocation.id
+          (l) => l.id === editingLocation.id
         );
         if (index !== -1) {
           updatedLocations[index] = { ...data, id: editingLocation.id };
@@ -71,7 +80,28 @@ const SettingsLocations = () => {
         updatedLocations.push({ ...data, id: newId });
       }
 
-      await setDoc(docRef, { locations: updatedLocations });
+      // 저장할 데이터를 변수에 담기
+      const dataToSave = {
+        locations: updatedLocations,
+        updatedAt: serverTimestamp(),
+      };
+
+      // 저장 전 데이터 로깅
+      console.log("=== 저장 전 데이터 ===");
+      console.log("전체 데이터:", dataToSave);
+
+      // 문서가 존재하든 없든 setDoc을 사용하여 전체 문서를 덮어씁니다
+      await setDoc(docRef, {
+        ...dataToSave,
+        createdAt: docSnap.exists()
+          ? docSnap.data().createdAt
+          : serverTimestamp(),
+      });
+
+      // 저장 후 데이터 로깅
+      console.log("=== 저장 후 데이터 ===");
+      console.log("전체 데이터:", dataToSave);
+
       showSuccess(
         "저장 완료",
         editingLocation ? "위치가 수정되었습니다." : "위치가 추가되었습니다."
@@ -81,9 +111,11 @@ const SettingsLocations = () => {
       setEditingLocation(null);
       setFormData({
         name: "",
-        description: "",
         address: "",
-        detail: "",
+        description: "",
+        icon: "MapPin",
+        iconColor: "bg-gray-100",
+        iconTextColor: "text-gray-500",
       });
       loadLocations();
     } catch (error) {
@@ -111,7 +143,7 @@ const SettingsLocations = () => {
     if (!locationToDelete) return;
 
     try {
-      const docRef = doc(db, "settings", "locations");
+      const docRef = doc(db, `clients/${userUUID}/settings`, "locations");
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {

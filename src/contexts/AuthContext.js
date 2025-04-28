@@ -1,5 +1,3 @@
-"use client";
-
 import { createContext, useContext, useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db } from "../firebase/config";
@@ -46,12 +44,24 @@ export const AuthProvider = ({ children }) => {
             console.log("[AuthContext] UID→UUID 매핑 문서 없음:", user.uid);
           }
         } catch (error) {
-          console.error("[AuthContext] UID→UUID 매핑 조회 에러:", error);
+          console.error(
+            "[AuthContext] UID→UUID 매핑 조회 에러:",
+            error,
+            error.code,
+            error.message,
+            error.stack
+          );
         }
       } else {
         setUserUUID(null);
       }
       setLoading(false);
+      console.log(
+        "[AuthContext] loading false, user:",
+        user,
+        "userUUID:",
+        userUUID
+      );
     });
 
     return unsubscribe;

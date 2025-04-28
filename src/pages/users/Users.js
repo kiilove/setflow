@@ -6,7 +6,8 @@ import { UserPlus, UserCog } from "lucide-react";
 import UserCard from "../../components/users/UserCard";
 import UserStats from "../../components/users/UserStats";
 import UserEmptyState from "../../components/users/UserEmptyState";
-import useEntityData from "../../hooks/useEntityData";
+import { useFirestoreSubcollection } from "../../hooks/useFirestoreSubcollection";
+import { useAuth } from "../../context/AuthContext";
 import ListPageTemplate from "../../components/common/ListPageTemplate";
 import { departments } from "../../data/userInitialData";
 import { deleteFileFromStorage } from "../../utils/fileUtils";
@@ -15,6 +16,7 @@ import BounceLoadingLogo from "../../components/common/BounceLoadingLogo";
 
 const Users = () => {
   const navigate = useNavigate();
+  const { userUUID } = useAuth();
   const [filterDepartment, setFilterDepartment] = useState("");
   const [filterLocation, setFilterLocation] = useState("");
   const [filterWorkType, setFilterWorkType] = useState("");
@@ -22,46 +24,130 @@ const Users = () => {
   const [error, setError] = useState(null);
   const [selectedItems, setSelectedItems] = useState([]);
 
-  // 엔티티 데이터 관리 훅 사용
-  const {
-    data: users,
-    loading: entityLoading,
-    setLoading: setEntityLoading,
-    fetchData,
-    deleteItem: deleteUser,
-    deleteMultipleItems: deleteMultipleUsers,
-    getDocuments,
-  } = useEntityData("users");
+  // Firestore 데이터 관리
+  const { getDocuments, deleteDocument } = useFirestoreSubcollection(
+    "clients",
+    userUUID,
+    "users"
+  );
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 디버깅 상태
+  const [debugInfo, setDebugInfo] = useState({
+    userUUID: null,
+    rawData: null,
+    processedData: null,
+    error: null,
+    timestamp: null,
+  });
+
+  // 사용자 데이터 로드
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        console.log("Debug: Starting fetchUsers");
+        console.log("Debug: userUUID:", userUUID);
+
+        setLoading(true);
+        setDebugInfo((prev) => ({
+          ...prev,
+          userUUID,
+          timestamp: new Date().toISOString(),
+        }));
+
+        const data = await getDocuments();
+        console.log("Debug: Raw data from getDocuments:", data);
+
+        setDebugInfo((prev) => ({
+          ...prev,
+          rawData: data,
+        }));
+
+        if (data && Array.isArray(data)) {
+          console.log("Debug: Setting users array with length:", data.length);
+          setUsers(data);
+          setDebugInfo((prev) => ({
+            ...prev,
+            processedData: data,
+          }));
+        } else {
+          console.log("Debug: Invalid data format, setting empty array");
+          setUsers([]);
+          setDebugInfo((prev) => ({
+            ...prev,
+            processedData: [],
+          }));
+        }
+      } catch (error) {
+        console.error("Debug: Error in fetchUsers:", error);
+        setError("사용자 목록을 불러오는데 실패했습니다.");
+        setUsers([]);
+        setDebugInfo((prev) => ({
+          ...prev,
+          error: error.message,
+        }));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, [getDocuments, userUUID]);
 
   // 사용자 데이터 복호화
   useEffect(() => {
     const decryptUsers = async () => {
-      if (!users || users.length === 0) return;
+      console.log("Debug: Starting decryptUsers");
+      console.log("Debug: Current users state:", users);
+
+      if (!users || users.length === 0) {
+        console.log("Debug: No users to decrypt");
+        setDecryptedUsers([]);
+        return;
+      }
 
       try {
-        setEntityLoading(true);
+        setLoading(true);
+        console.log("Debug: Starting decryption for", users.length, "users");
+
         const decryptedData = await Promise.all(
           users.map(async (user) => {
             try {
+              console.log("Debug: Decrypting user:", user.id);
               const decryptedUser = await fetchUserData(user.id);
               return { ...user, ...decryptedUser };
             } catch (error) {
-              console.error(`Error decrypting user ${user.id}:`, error);
+              console.error(`Debug: Error decrypting user ${user.id}:`, error);
               return user;
             }
           })
         );
+
+        console.log("Debug: Decryption completed, setting decryptedUsers");
         setDecryptedUsers(decryptedData);
       } catch (error) {
-        console.error("Error decrypting users:", error);
+        console.error("Debug: Error in decryptUsers:", error);
         setDecryptedUsers(users);
       } finally {
-        setEntityLoading(false);
+        setLoading(false);
       }
     };
 
     decryptUsers();
-  }, [users, setEntityLoading]);
+  }, [users]);
+
+  // 디버깅 정보 표시
+  if (process.env.NODE_ENV === "development") {
+    console.log("Debug: Current state:", {
+      userUUID,
+      users,
+      decryptedUsers,
+      loading,
+      error,
+      debugInfo,
+    });
+  }
 
   // 부서 목록 추출
   const departmentOptions = departments.map((dept) => ({
@@ -170,7 +256,7 @@ const Users = () => {
       );
 
       // Firestore 데이터 삭제
-      await deleteMultipleUsers(userIds);
+      await deleteDocument(userIds);
 
       // 삭제 후 데이터 갱신
       const updatedUsers = users.filter((user) => !userIds.includes(user.id));
@@ -190,7 +276,7 @@ const Users = () => {
       if (user?.profileImage) {
         await deleteFileFromStorage(user.profileImage);
       }
-      await deleteUser(userId, userName);
+      await deleteDocument(userId, userName);
 
       // 삭제 후 데이터 갱신
       const updatedUsers = users.filter((u) => u.id !== userId);
@@ -270,7 +356,7 @@ const Users = () => {
     />
   );
 
-  if (entityLoading) {
+  if (loading) {
     return <BounceLoadingLogo />;
   }
 
@@ -286,9 +372,9 @@ const Users = () => {
         entityName="사용자"
         // 데이터 관련
         data={decryptedUsers}
-        loading={entityLoading}
-        setLoading={setEntityLoading}
-        fetchData={fetchData}
+        loading={loading}
+        setLoading={setLoading}
+        fetchData={getDocuments}
         // 테이블/그리드 설정
         columns={columns}
         renderGridItem={(user) => (

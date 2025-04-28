@@ -1,48 +1,45 @@
 "use client";
 
 import React from "react";
-
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import PageContainer from "../../components/common/PageContainer";
 import { getButtonVariantClass } from "../../utils/themeUtils";
-import { useFirestore } from "../../hooks/useFirestore";
+import { useFirestoreSubcollection } from "../../hooks/useFirestoreSubcollection";
 import { useMessageContext } from "../../context/MessageContext";
+import { useAuth } from "../../context/AuthContext";
 import * as Icons from "lucide-react";
 import { Edit, FileEdit, ArrowLeft, Trash2 } from "lucide-react";
 
 const CategoriesDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getDocument, deleteDocument } = useFirestore("categories");
+  const { userUUID } = useAuth();
   const { showConfirm, showSuccess, showError } = useMessageContext();
 
+  // useFirestoreSubcollection 훅 사용
+  const { getDocument, deleteDocument, isLoading, error } =
+    useFirestoreSubcollection("clients", userUUID, "categories");
+
   const [category, setCategory] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   // 카테고리 데이터 로드
   useEffect(() => {
     const fetchCategory = async () => {
       try {
-        setLoading(true);
         const data = await getDocument(id);
-
         if (!data) {
           throw new Error("카테고리를 찾을 수 없습니다.");
         }
-
         setCategory(data);
       } catch (err) {
         console.error("카테고리 로딩 오류:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
+        showError("카테고리 로딩 오류", err.message);
       }
     };
 
     fetchCategory();
-  }, [id, getDocument]);
+  }, [id, getDocument, showError]);
 
   // 카테고리 삭제 핸들러
   const handleDelete = async () => {
@@ -84,30 +81,19 @@ const CategoriesDetail = () => {
   // 잔존가치 표시 형식
   const formatResidualValue = (depreciation) => {
     if (!depreciation) return "-";
-    if (depreciation.residualValueType === "percentage") {
-      return `${depreciation.residualValue}%`;
+    if (depreciation.salvageValueType === "percentage") {
+      return `${depreciation.salvageValue}%`;
     } else {
-      return `${depreciation.residualValue.toLocaleString()}원`;
+      return `${depreciation.salvageValue?.toLocaleString() || 0}원`;
     }
   };
 
   // 감가상각 방법 표시 형식
   const formatDepreciationMethod = (method) => {
-    switch (method) {
-      case "straight-line":
-        return "정액법 (Straight-Line)";
-      case "declining-balance":
-        return "정률법 (Declining Balance)";
-      case "sum-of-years-digits":
-        return "연수합계법 (Sum-of-Years-Digits)";
-      case "units-of-production":
-        return "생산량비례법 (Units of Production)";
-      default:
-        return method;
-    }
+    return method || "-";
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <PageContainer title="카테고리 상세 정보">
         <div className="flex justify-center items-center h-64">
@@ -156,7 +142,7 @@ const CategoriesDetail = () => {
         </Link>
         <div className="flex space-x-2">
           <Link
-            to={`/categories/template/${id}`}
+            to={`/categories/${id}/template`}
             className={`inline-flex items-center px-3 py-1.5 rounded-md text-sm ${getButtonVariantClass(
               "secondary"
             )}`}
@@ -241,7 +227,7 @@ const CategoriesDetail = () => {
                 내용연수
               </h4>
               <p className="text-foreground">
-                {category.depreciation?.years || 0}년
+                {category.depreciation?.minDepreciationPeriod || 0}년
               </p>
             </div>
             <div>
@@ -249,7 +235,7 @@ const CategoriesDetail = () => {
                 잔존가치 유형
               </h4>
               <p className="text-foreground">
-                {category.depreciation?.residualValueType === "percentage"
+                {category.depreciation?.salvageValueType === "percentage"
                   ? "퍼센트 (%)"
                   : "정액 (원)"}
               </p>
@@ -302,6 +288,27 @@ const CategoriesDetail = () => {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="flex justify-end space-x-2">
+        <button
+          onClick={() => navigate(`/categories/detail/${id}/edit`)}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          수정
+        </button>
+        <button
+          onClick={() => navigate(`/categories/detail/${id}/template`)}
+          className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+        >
+          사양 템플릿 편집
+        </button>
+        <button
+          onClick={() => navigate("/categories")}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          목록
+        </button>
       </div>
     </PageContainer>
   );

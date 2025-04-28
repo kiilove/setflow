@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { useFirestore } from "../../hooks/useFirestore";
 import { Building2, Save, Search } from "lucide-react";
 import ModalMessage from "../common/ModalMessage";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase/config";
+import { useAuth } from "../../context/AuthContext";
 
 const SettingsCompany = () => {
   const { updateDocument } = useFirestore("settings");
+  const { userUUID } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [company, setCompany] = useState({
@@ -47,7 +49,7 @@ const SettingsCompany = () => {
   const loadCompany = async () => {
     try {
       setLoading(true);
-      const docRef = doc(db, "settings", "company");
+      const docRef = doc(db, `clients/${userUUID}/settings`, "company");
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
@@ -91,18 +93,41 @@ const SettingsCompany = () => {
     if (!validateForm()) return;
 
     try {
-      if (isNew) {
-        // 새로 생성할 때는 직접 Firestore에 접근
-        const docRef = doc(db, "settings", "company");
-        await setDoc(docRef, company);
-        setIsNew(false);
-      } else {
-        // 업데이트할 때는 훅 사용
-        await updateDocument("company", company);
+      const docRef = doc(db, `clients/${userUUID}/settings`, "company");
+      const docSnap = await getDoc(docRef);
+
+      // 저장할 데이터를 변수에 담기
+      const dataToSave = {
+        ...company,
+        updatedAt: serverTimestamp(),
+      };
+
+      // 저장 전 데이터 로깅
+      console.log("=== 저장 전 데이터 ===");
+      console.log("전체 데이터:", dataToSave);
+      console.log("사용자 UUID:", userUUID);
+
+      // 데이터 유효성 검사
+      if (
+        !dataToSave.name ||
+        !dataToSave.businessNumber ||
+        !dataToSave.representative
+      ) {
+        throw new Error("필수 필드가 누락되었습니다.");
       }
+
+      // 문서 저장
+      await setDoc(docRef, dataToSave);
+
+      // 저장 후 데이터 로깅
+      console.log("=== 저장 후 데이터 ===");
+      console.log("전체 데이터:", dataToSave);
+
       setShowSuccessModal(true);
+      setIsNew(false);
     } catch (error) {
-      setErrorMessage("회사 정보 저장에 실패했습니다.");
+      console.error("회사 정보 저장 중 오류 발생:", error);
+      setErrorMessage(`회사 정보 저장에 실패했습니다. (${error.message})`);
       setShowErrorModal(true);
     }
   };

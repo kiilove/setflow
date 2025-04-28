@@ -6,6 +6,7 @@ import { Save, X, MapPin, Building } from "lucide-react";
 import DepartmentIconSelector from "./DepartmentIconSelector";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase/config";
+import { useAuth } from "../../context/AuthContext";
 
 const DepartmentForm = ({
   initialValues,
@@ -13,6 +14,7 @@ const DepartmentForm = ({
   onCancel,
   isEditing = false,
 }) => {
+  const { userUUID } = useAuth();
   const [formData, setFormData] = useState({
     name: initialValues?.name || "",
     description: initialValues?.description || "",
@@ -32,7 +34,7 @@ const DepartmentForm = ({
     const fetchLocations = async () => {
       try {
         setLoadingLocations(true);
-        const docRef = doc(db, "settings", "locations");
+        const docRef = doc(db, `clients/${userUUID}/settings`, "locations");
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
@@ -47,7 +49,7 @@ const DepartmentForm = ({
     };
 
     fetchLocations();
-  }, []);
+  }, [userUUID]);
 
   const handleLocationChange = (e) => {
     const locationId = e.target.value;

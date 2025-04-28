@@ -4,19 +4,29 @@ import { useState, useEffect } from "react";
 import { getButtonVariantClass } from "../../utils/themeUtils";
 import { Save, X, Plus } from "lucide-react";
 import IconSelector from "./IconSelector";
-import { useFirestore } from "../../hooks/useFirestore";
+import { useFirestoreSubcollection } from "../../hooks/useFirestoreSubcollection";
+import { useAuth } from "../../context/AuthContext";
 
 const CategoriesForm = ({ initialData, onSubmit, onCancel }) => {
+  const { userUUID } = useAuth();
+  const { getCollection: getCategoryGroups, addDocument: addCategoryGroup } =
+    useFirestoreSubcollection("clients", userUUID, "categoryGroups");
+  const { getCollection: getDepreciationSettings } = useFirestoreSubcollection(
+    "clients",
+    userUUID,
+    "settings"
+  );
+
   // 기본 상태 관리
   const [formData, setFormData] = useState({
     name: initialData?.name || "",
     description: initialData?.description || "",
     group: initialData?.group || "",
     depreciation: initialData?.depreciation || {
-      method: "declining-balance",
-      years: 5,
-      residualValueType: "fixed",
-      residualValue: 1000,
+      method: "정액법",
+      minDepreciationPeriod: 5,
+      salvageValue: 1000,
+      salvageValueType: "fixed",
     },
   });
 
@@ -34,18 +44,62 @@ const CategoriesForm = ({ initialData, onSubmit, onCancel }) => {
   const [groups, setGroups] = useState([]);
   const [newGroupInput, setNewGroupInput] = useState("");
   const [isAddingNewGroup, setIsAddingNewGroup] = useState(false);
-  const { getCollection, addDocument } = useFirestore("categoryGroups");
+  const [depreciationMethods, setDepreciationMethods] = useState([]);
 
-  // 감가상각 방법 옵션
-  const depreciationMethods = [
-    { value: "straight-line", label: "정액법 (Straight-Line)" },
-    { value: "declining-balance", label: "정률법 (Declining Balance)" },
-    { value: "sum-of-years-digits", label: "연수합계법 (Sum-of-Years-Digits)" },
-    {
-      value: "units-of-production",
-      label: "생산량비례법 (Units of Production)",
-    },
-  ];
+  // 감가상각 설정 로드를 위한 useEffect 추가:
+  useEffect(() => {
+    const fetchDepreciationSettings = async () => {
+      try {
+        const settings = await getDepreciationSettings();
+        if (settings && settings.length > 0) {
+          const depreciationDoc = settings.find(
+            (doc) => doc.id === "depreciation"
+          );
+          if (depreciationDoc && depreciationDoc.methods) {
+            setDepreciationMethods(depreciationDoc.methods);
+
+            // 초기값이 없을 경우 첫 번째 방법을 기본값으로 설정
+            if (!initialData?.depreciation) {
+              const firstMethod = depreciationDoc.methods[0];
+              setFormData((prev) => ({
+                ...prev,
+                depreciation: {
+                  method: firstMethod.method,
+                  minDepreciationPeriod: firstMethod.minDepreciationPeriod,
+                  salvageValue: firstMethod.salvageValue,
+                  salvageValueType: firstMethod.salvageValueType,
+                },
+              }));
+            }
+          }
+        }
+      } catch (error) {
+        console.error(
+          "감가상각 설정을 불러오는 중 오류가 발생했습니다:",
+          error
+        );
+      }
+    };
+
+    fetchDepreciationSettings();
+  }, [getDepreciationSettings, initialData]);
+
+  // 그룹 데이터 로드를 위한 useEffect 추가:
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const data = await getCategoryGroups();
+        setGroups(data);
+      } catch (error) {
+        console.error(
+          "카테고리 그룹을 불러오는 중 오류가 발생했습니다:",
+          error
+        );
+      }
+    };
+
+    fetchGroups();
+  }, [getCategoryGroups]);
 
   // 기본 입력 필드 변경 핸들러
   const handleChange = (e) => {
@@ -81,51 +135,48 @@ const CategoriesForm = ({ initialData, onSubmit, onCancel }) => {
   // 감가상각 필드 변경 처리
   const handleDepreciationChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      depreciation: {
-        ...formData.depreciation,
-        [name]:
-          name === "years" || name === "residualValue"
-            ? name === "residualValue" &&
-              formData.depreciation.residualValueType === "fixed"
-              ? Number.parseInt(value)
-              : name === "years"
-              ? Number.parseInt(value)
-              : Number.parseFloat(value)
-            : value,
-      },
-    });
+
+    if (name === "method") {
+      // 선택된 감가상각 방법의 설정을 찾아서 적용
+      const selectedMethod = depreciationMethods.find(
+        (m) => m.method === value
+      );
+      if (selectedMethod) {
+        setFormData({
+          ...formData,
+          depreciation: {
+            method: value,
+            minDepreciationPeriod: selectedMethod.minDepreciationPeriod,
+            salvageValue: selectedMethod.salvageValue,
+            salvageValueType: selectedMethod.salvageValueType,
+          },
+        });
+      }
+    } else {
+      setFormData({
+        ...formData,
+        depreciation: {
+          ...formData.depreciation,
+          [name]:
+            name === "minDepreciationPeriod" || name === "salvageValue"
+              ? Number(value)
+              : value,
+        },
+      });
+    }
   };
 
   // 잔존가치 유형 변경 처리
-  const handleResidualValueTypeChange = (type) => {
+  const handleSalvageValueTypeChange = (type) => {
     setFormData({
       ...formData,
       depreciation: {
         ...formData.depreciation,
-        residualValueType: type,
-        residualValue: type === "percentage" ? 10 : 1000,
+        salvageValueType: type,
+        salvageValue: type === "percentage" ? 10 : 1000,
       },
     });
   };
-
-  // 그룹 데이터 로드를 위한 useEffect 추가:
-  useEffect(() => {
-    const fetchGroups = async () => {
-      try {
-        const data = await getCollection();
-        setGroups(data);
-      } catch (error) {
-        console.error(
-          "카테고리 그룹을 불러오는 중 오류가 발생했습니다:",
-          error
-        );
-      }
-    };
-
-    fetchGroups();
-  }, [getCollection]);
 
   // 그룹 관련 핸들러 함수 추가:
   const handleAddNewGroup = async () => {
@@ -153,7 +204,7 @@ const CategoriesForm = ({ initialData, onSubmit, onCancel }) => {
         };
 
         // Firestore에 그룹 추가
-        const newGroupId = await addDocument(newGroup);
+        const newGroupId = await addCategoryGroup(newGroup);
 
         // 상태 업데이트
         const groupWithId = { ...newGroup, id: newGroupId };
@@ -394,132 +445,103 @@ const CategoriesForm = ({ initialData, onSubmit, onCancel }) => {
                 className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
               >
                 {depreciationMethods.map((method) => (
-                  <option key={method.value} value={method.value}>
-                    {method.label}
+                  <option key={method.method} value={method.method}>
+                    {method.method}
                   </option>
                 ))}
               </select>
               <p className="text-xs text-muted-foreground">
-                {formData.depreciation.method === "straight-line" &&
-                  "정액법: 자산의 가치가 매년 동일한 금액으로 감가상각됩니다."}
-                {formData.depreciation.method === "declining-balance" &&
-                  "정률법: 자산의 장부가치에 일정 비율을 곱하여 감가상각됩니다."}
-                {formData.depreciation.method === "sum-of-years-digits" &&
-                  "연수합계법: 자산의 내용연수 합계를 기준으로 감가상각됩니다."}
-                {formData.depreciation.method === "units-of-production" &&
-                  "생산량비례법: 자산의 총 예상 생산량에 대한 실제 생산량 비율로 감가상각됩니다."}
+                {
+                  depreciationMethods.find(
+                    (m) => m.method === formData.depreciation.method
+                  )?.description
+                }
               </p>
             </div>
 
             <div className="space-y-2">
               <label
-                htmlFor="years"
+                htmlFor="minDepreciationPeriod"
                 className="block text-sm font-medium text-foreground"
               >
-                내용연수 (년) <span className="text-destructive">*</span>
+                최소 감가상각 기간 (년){" "}
+                <span className="text-destructive">*</span>
               </label>
               <input
                 type="number"
-                id="years"
-                name="years"
-                value={formData.depreciation.years}
+                id="minDepreciationPeriod"
+                name="minDepreciationPeriod"
+                value={formData.depreciation.minDepreciationPeriod}
                 onChange={handleDepreciationChange}
                 min={1}
                 max={50}
                 required
                 className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
               />
-              <p className="text-xs text-muted-foreground">
-                자산의 예상 사용 기간을 년 단위로 입력하세요.
-              </p>
             </div>
 
-            {/* 잔존가치 유형 선택 */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-foreground">
                 잔존가치 유형 <span className="text-destructive">*</span>
               </label>
-              <div className="flex space-x-4 mb-3">
+              <div className="flex space-x-4">
                 <label className="inline-flex items-center">
                   <input
                     type="radio"
-                    name="residualValueType"
-                    checked={
-                      formData.depreciation.residualValueType === "percentage"
-                    }
-                    onChange={() => handleResidualValueTypeChange("percentage")}
-                    className="h-4 w-4 text-primary border-border focus:ring-primary"
-                  />
-                  <span className="ml-2 text-sm text-foreground">
-                    퍼센트 (%)
-                  </span>
-                </label>
-                <label className="inline-flex items-center">
-                  <input
-                    type="radio"
-                    name="residualValueType"
-                    checked={
-                      formData.depreciation.residualValueType === "fixed"
-                    }
-                    onChange={() => handleResidualValueTypeChange("fixed")}
+                    name="salvageValueType"
+                    checked={formData.depreciation.salvageValueType === "fixed"}
+                    onChange={() => handleSalvageValueTypeChange("fixed")}
                     className="h-4 w-4 text-primary border-border focus:ring-primary"
                   />
                   <span className="ml-2 text-sm text-foreground">
                     정액 (원)
                   </span>
                 </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="salvageValueType"
+                    checked={
+                      formData.depreciation.salvageValueType === "percentage"
+                    }
+                    onChange={() => handleSalvageValueTypeChange("percentage")}
+                    className="h-4 w-4 text-primary border-border focus:ring-primary"
+                  />
+                  <span className="ml-2 text-sm text-foreground">
+                    퍼센트 (%)
+                  </span>
+                </label>
               </div>
             </div>
 
-            {/* 잔존가치 입력 필드 - 유형에 따라 다르게 표시 */}
-            {formData.depreciation.residualValueType === "percentage" ? (
-              <div className="space-y-2">
-                <label
-                  htmlFor="residualValue"
-                  className="block text-sm font-medium text-foreground"
-                >
-                  잔존가치 (%) <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="number"
-                  id="residualValue"
-                  name="residualValue"
-                  value={formData.depreciation.residualValue}
-                  onChange={handleDepreciationChange}
-                  min={0}
-                  max={100}
-                  step="0.1"
-                  required
-                  className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                />
-                <p className="text-xs text-muted-foreground">
-                  내용연수 종료 후 자산의 예상 잔존가치를 원가 대비 백분율로
-                  입력하세요.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <label
-                  htmlFor="residualValue"
-                  className="block text-sm font-medium text-foreground"
-                >
-                  잔존가치 (원) <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="number"
-                  id="residualValue"
-                  name="residualValue"
-                  value={formData.depreciation.residualValue}
-                  onChange={handleDepreciationChange}
-                  min={0}
-                  required
-                  className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-                />
-                <p className="text-xs text-muted-foreground">
-                  내용연수 종료 후 자산의 예상 잔존가치를 원 단위로 입력하세요.
-                </p>
-              </div>
-            )}
+            <div className="space-y-2">
+              <label
+                htmlFor="salvageValue"
+                className="block text-sm font-medium text-foreground"
+              >
+                잔존가치 <span className="text-destructive">*</span>
+              </label>
+              <input
+                type="number"
+                id="salvageValue"
+                name="salvageValue"
+                value={formData.depreciation.salvageValue}
+                onChange={handleDepreciationChange}
+                min={0}
+                max={
+                  formData.depreciation.salvageValueType === "percentage"
+                    ? 100
+                    : undefined
+                }
+                required
+                className="w-full rounded-md border border-input bg-background px-4 py-2 text-foreground shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+              />
+              <p className="text-xs text-muted-foreground">
+                {formData.depreciation.salvageValueType === "percentage"
+                  ? "원가 대비 백분율로 입력하세요 (0-100%)"
+                  : "원 단위로 입력하세요"}
+              </p>
+            </div>
           </div>
         </div>
 

@@ -6,16 +6,21 @@ import { useMessageContext } from "../../context/MessageContext";
 import { getButtonVariantClass } from "../../utils/themeUtils";
 import { Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
 import {
-  getAuth,
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
   OAuthProvider,
+  updateProfile,
+  sendEmailVerification,
 } from "firebase/auth";
+import { v4 as uuidv4 } from "uuid";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db, auth } from "../../firebase/config";
 
 const Register = () => {
   const navigate = useNavigate();
-  const { showError, showSuccess } = useMessageContext();
+  const { showError } = useMessageContext();
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,123 +29,219 @@ const Register = () => {
     password: "",
     confirmPassword: "",
   });
+  const [error, setError] = useState("");
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+  // ----------------------------------------------------
+  // Firestore 쓰기 단계별 디버깅 헬퍼
+  // ----------------------------------------------------
+  const createUserRecords = async (user, name, email, uuid) => {
+    const ts = serverTimestamp();
+
+    // 1) profile
+    const profileData = { name, email, createdAt: ts };
+    console.log("🔍 [디버깅] profile에 넘기는 데이터:", profileData);
+    if (typeof name === "undefined" || typeof email === "undefined") {
+      console.error("❌ name 또는 email이 undefined입니다!", { name, email });
+      throw new Error("프로필 저장용 데이터가 올바르지 않습니다.");
+    }
+    try {
+      console.log(
+        "🔍 [Firestore] profile 쓰기 시도 → clients/%s/profile/default",
+        uuid
+      );
+      await setDoc(doc(db, `clients/${uuid}/profile/default`), profileData);
+      console.log("    ✅ [Firestore] profile 저장 완료");
+    } catch (error) {
+      console.error("Firestore 에러 상세:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      });
+      throw error;
+    }
+
+    // 2) preferences
+    const preferencesData = { theme: "light", language: "ko", createdAt: ts };
+    console.log("🔍 [디버깅] preferences에 넘기는 데이터:", preferencesData);
+    try {
+      console.log(
+        "🔍 [Firestore] preferences 쓰기 시도 → clients/%s/preferences/default",
+        uuid
+      );
+      await setDoc(
+        doc(db, `clients/${uuid}/preferences/default`),
+        preferencesData
+      );
+      console.log("    ✅ [Firestore] preferences 저장 완료");
+    } catch (e) {
+      console.error("    ❌ [Firestore] preferences 저장 실패:", e);
+      throw e;
+    }
+
+    // 3) license
+    const licenseData = {
+      subscriptionType: "free",
+      licenseStatus: "active",
+      expireAt: null,
+      createdAt: ts,
+    };
+    console.log("🔍 [디버깅] license에 넘기는 데이터:", licenseData);
+    try {
+      console.log(
+        "🔍 [Firestore] license 쓰기 시도 → clients/%s/license/default",
+        uuid
+      );
+      await setDoc(doc(db, `clients/${uuid}/license/default`), licenseData);
+      console.log("    ✅ [Firestore] license 저장 완료");
+    } catch (e) {
+      console.error("    ❌ [Firestore] license 저장 실패:", e);
+      throw e;
+    }
+
+    // 4) uid_map
+    const uidMapData = { uuid };
+    console.log("🔍 [디버깅] uid_map에 넘기는 데이터:", uidMapData);
+    try {
+      console.log("🔍 [Firestore] uid_map 쓰기 시도 → uid_map/%s", user.uid);
+      await setDoc(doc(db, "uid_map", user.uid), uidMapData);
+      console.log("    ✅ [Firestore] uid_map 저장 완료");
+    } catch (e) {
+      console.error("    ❌ [Firestore] uid_map 저장 실패:", e);
+      throw e;
+    }
+
+    console.log("🔍 [Firestore] 모든 쓰기 단계 완료");
   };
 
-  const handleEmailRegister = async (e) => {
-    e.preventDefault();
+  // ----------------------------------------------------
+  // 입력 검증
+  // ----------------------------------------------------
+  const validateForm = () => {
+    console.log("🔍 [검증] 입력값 검증 시작");
     if (!formData.name || !formData.email || !formData.password) {
       showError("입력 오류", "모든 필드를 입력해주세요.");
-      return;
+      console.warn("    ⚠️ 검증 실패: 빈 필드 발견");
+      return false;
     }
-
     if (formData.password !== formData.confirmPassword) {
       showError("입력 오류", "비밀번호가 일치하지 않습니다.");
-      return;
+      console.warn("    ⚠️ 검증 실패: 비밀번호 불일치");
+      return false;
     }
+    console.log("    ✅ [검증] 입력값 통과");
+    return true;
+  };
+
+  const getErrorMessage = (code) => {
+    console.log("🔍 [에러코드 처리] code =", code);
+    switch (code) {
+      case "auth/email-already-in-use":
+        return "이미 사용 중인 이메일입니다.";
+      case "auth/invalid-email":
+        return "유효하지 않은 이메일 형식입니다.";
+      case "auth/weak-password":
+        return "비밀번호가 너무 약합니다.";
+      default:
+        return code;
+    }
+  };
+
+  // ----------------------------------------------------
+  // 이메일/비밀번호 회원가입 핸들러
+  // ----------------------------------------------------
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log("📝 [폼 제출] 이메일 회원가입 요청 →", formData.email);
+
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setError("");
+    console.log("⏳ [회원가입] 프로세스 시작");
 
     try {
-      setLoading(true);
-      const auth = getAuth();
-      await createUserWithEmailAndPassword(
+      console.log("  • [Auth] createUserWithEmailAndPassword 시도");
+      const { user } = await createUserWithEmailAndPassword(
         auth,
         formData.email,
         formData.password
       );
-      showSuccess("회원가입 성공", "회원가입이 완료되었습니다.");
+      console.log("    ✅ [Auth] 회원가입 성공 → UID:", user.uid);
+
+      console.log("  • [Auth] updateProfile 시도 →", formData.name);
+      await updateProfile(user, { displayName: formData.name });
+      console.log("    ✅ [Auth] 프로필 업데이트 완료");
+
+      const uuid = uuidv4();
+      console.log("  • [UUID] 생성 완료 →", uuid);
+
+      // Firestore에 사용자 기록 생성
+      await createUserRecords(user, formData.name, formData.email, uuid);
+
+      console.log("  • [Auth] 이메일 인증 메일 발송 시도");
+      await sendEmailVerification(user);
+      console.log("    ✅ [Auth] 이메일 인증 메일 전송 완료");
+
+      console.log("🎉 [회원가입 완료] 메인 페이지로 이동");
       navigate("/");
-    } catch (error) {
-      console.error("회원가입 오류:", error);
-      let errorMessage = "회원가입에 실패했습니다.";
-      switch (error.code) {
-        case "auth/email-already-in-use":
-          errorMessage = "이미 사용 중인 이메일입니다.";
-          break;
-        case "auth/invalid-email":
-          errorMessage = "유효하지 않은 이메일 형식입니다.";
-          break;
-        case "auth/weak-password":
-          errorMessage = "비밀번호가 너무 약합니다.";
-          break;
-      }
-      showError("회원가입 실패", errorMessage);
+    } catch (err) {
+      console.error("❌ [회원가입 에러] 발생:", err);
+      const msg = err.code ? getErrorMessage(err.code) : err.message;
+      setError(msg);
     } finally {
       setLoading(false);
+      console.log("⏱ [회원가입] 프로세스 종료");
     }
   };
 
-  const handleGoogleRegister = async () => {
+  // ----------------------------------------------------
+  // 소셜 로그인 핸들러 (Google / Naver / Kakao)
+  // ----------------------------------------------------
+  const handleSocialRegister = (providerName, provider) => async () => {
+    console.log(`📝 [폼 제출] ${providerName} 회원가입 시작`);
+    setLoading(true);
+    setError("");
+
     try {
-      setLoading(true);
-      const auth = getAuth();
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      showSuccess("회원가입 성공", "구글 계정으로 회원가입이 완료되었습니다.");
+      console.log(`  • [Auth] ${providerName} 팝업 열기`);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      console.log(`    ✅ [Auth] ${providerName} 로그인 성공 → UID:`, user.uid);
+
+      const uuid = uuidv4();
+      console.log("  • [UUID] 생성 완료 →", uuid);
+
+      // Firestore에 사용자 기록 생성
+      await createUserRecords(
+        user,
+        user.displayName || "",
+        user.email || "",
+        uuid
+      );
+
+      console.log(`🎉 [${providerName} 회원가입 완료] 메인 페이지로 이동`);
       navigate("/");
-    } catch (error) {
-      console.error("구글 회원가입 오류:", error);
-      showError("구글 회원가입 실패", "구글 계정으로 회원가입에 실패했습니다.");
+    } catch (err) {
+      console.error(`❌ [${providerName} 에러] 발생:`, err);
+      setError("회원가입 처리 중 문제가 발생했습니다.");
     } finally {
       setLoading(false);
+      console.log(`⏱ [${providerName}] 프로세스 종료`);
     }
   };
 
-  const handleNaverRegister = async () => {
-    try {
-      setLoading(true);
-      const auth = getAuth();
-      const provider = new OAuthProvider("naver.com");
-      provider.setCustomParameters({
-        prompt: "select_account",
-      });
-      await signInWithPopup(auth, provider);
-      showSuccess(
-        "회원가입 성공",
-        "네이버 계정으로 회원가입이 완료되었습니다."
-      );
-      navigate("/");
-    } catch (error) {
-      console.error("네이버 회원가입 오류:", error);
-      showError(
-        "네이버 회원가입 실패",
-        "네이버 계정으로 회원가입에 실패했습니다."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ----------------------------------------------------
+  // OAuthProvider 설정
+  // ----------------------------------------------------
+  const googleProvider = new GoogleAuthProvider();
+  const naverProvider = new OAuthProvider("naver.com");
+  naverProvider.setCustomParameters({ prompt: "select_account" });
+  const kakaoProvider = new OAuthProvider("kakao.com");
+  kakaoProvider.setCustomParameters({ prompt: "select_account" });
 
-  const handleKakaoRegister = async () => {
-    try {
-      setLoading(true);
-      const auth = getAuth();
-      const provider = new OAuthProvider("kakao.com");
-      provider.setCustomParameters({
-        prompt: "select_account",
-      });
-      await signInWithPopup(auth, provider);
-      showSuccess(
-        "회원가입 성공",
-        "카카오 계정으로 회원가입이 완료되었습니다."
-      );
-      navigate("/");
-    } catch (error) {
-      console.error("카카오 회원가입 오류:", error);
-      showError(
-        "카카오 회원가입 실패",
-        "카카오 계정으로 회원가입에 실패했습니다."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ----------------------------------------------------
+  // JSX
+  // ----------------------------------------------------
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
@@ -155,7 +256,12 @@ const Register = () => {
             </p>
           </div>
 
-          <form onSubmit={handleEmailRegister} className="space-y-4">
+          {error && (
+            <p className="mb-4 text-red-500 text-sm text-center">{error}</p>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* 이름 */}
             <div className="space-y-2">
               <label
                 htmlFor="name"
@@ -172,13 +278,16 @@ const Register = () => {
                   name="name"
                   type="text"
                   value={formData.name}
-                  onChange={handleChange}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, name: e.target.value }))
+                  }
                   className="w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="이름을 입력하세요"
                 />
               </div>
             </div>
 
+            {/* 이메일 */}
             <div className="space-y-2">
               <label
                 htmlFor="email"
@@ -195,13 +304,16 @@ const Register = () => {
                   name="email"
                   type="email"
                   value={formData.email}
-                  onChange={handleChange}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, email: e.target.value }))
+                  }
                   className="w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="이메일을 입력하세요"
                 />
               </div>
             </div>
 
+            {/* 비밀번호 */}
             <div className="space-y-2">
               <label
                 htmlFor="password"
@@ -218,13 +330,15 @@ const Register = () => {
                   name="password"
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
-                  onChange={handleChange}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, password: e.target.value }))
+                  }
                   className="w-full pl-10 pr-10 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="비밀번호를 입력하세요"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword((v) => !v)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {showPassword ? (
@@ -236,6 +350,7 @@ const Register = () => {
               </div>
             </div>
 
+            {/* 비밀번호 확인 */}
             <div className="space-y-2">
               <label
                 htmlFor="confirmPassword"
@@ -252,13 +367,18 @@ const Register = () => {
                   name="confirmPassword"
                   type={showPassword ? "text" : "password"}
                   value={formData.confirmPassword}
-                  onChange={handleChange}
+                  onChange={(e) =>
+                    setFormData((p) => ({
+                      ...p,
+                      confirmPassword: e.target.value,
+                    }))
+                  }
                   className="w-full pl-10 pr-10 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="비밀번호를 다시 입력하세요"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword((v) => !v)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {showPassword ? (
@@ -270,6 +390,7 @@ const Register = () => {
               </div>
             </div>
 
+            {/* 가입 버튼 */}
             <button
               type="submit"
               disabled={loading}
@@ -285,6 +406,7 @@ const Register = () => {
             </button>
           </form>
 
+          {/* 소셜 회원가입 */}
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -299,7 +421,7 @@ const Register = () => {
 
             <div className="mt-6 grid grid-cols-3 gap-3">
               <button
-                onClick={handleGoogleRegister}
+                onClick={handleSocialRegister("Google", googleProvider)}
                 disabled={loading}
                 className={`flex items-center justify-center py-2 px-4 rounded-md ${getButtonVariantClass(
                   "outline"
@@ -313,7 +435,7 @@ const Register = () => {
                 Google
               </button>
               <button
-                onClick={handleNaverRegister}
+                onClick={handleSocialRegister("Naver", naverProvider)}
                 disabled={loading}
                 className={`flex items-center justify-center py-2 px-4 rounded-md ${getButtonVariantClass(
                   "outline"
@@ -327,7 +449,7 @@ const Register = () => {
                 Naver
               </button>
               <button
-                onClick={handleKakaoRegister}
+                onClick={handleSocialRegister("Kakao", kakaoProvider)}
                 disabled={loading}
                 className={`flex items-center justify-center py-2 px-4 rounded-md ${getButtonVariantClass(
                   "outline"

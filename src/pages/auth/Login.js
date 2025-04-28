@@ -4,7 +4,17 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useMessageContext } from "../../context/MessageContext";
 import { getButtonVariantClass } from "../../utils/themeUtils";
-import { Mail, Lock, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Loader2,
+  Chrome,
+  MessageSquare,
+  Smartphone,
+} from "lucide-react";
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -12,10 +22,14 @@ import {
   signInWithPopup,
   OAuthProvider,
 } from "firebase/auth";
+import { useAuth } from "../../contexts/AuthContext";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../firebase/config";
 
 const Login = () => {
   const navigate = useNavigate();
   const { showError } = useMessageContext();
+  const { setUser, setUserUUID } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -34,17 +48,57 @@ const Login = () => {
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     if (!formData.email || !formData.password) {
-      showError("입력 오류", "이메일과 비밀번호를 모두 입력해주세요.");
+      showError("입력 오류", "이메일과 비밀번호를 입력해주세요.");
       return;
     }
 
     try {
       setLoading(true);
       const auth = getAuth();
-      await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      navigate("/");
+      console.log("[Login] 로그인 시도:", formData.email);
+
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+      console.log("[Login] Firebase Auth 로그인 성공:", userCredential);
+
+      // 이메일 인증 여부 확인
+      if (!userCredential.user.emailVerified) {
+        showError("이메일 인증 필요", "이메일 인증을 완료해주세요.");
+        setLoading(false);
+        return;
+      }
+
+      // Firestore에서 UUID 매핑 조회
+      console.log("[Login] UID→UUID 매핑 조회 시도:", userCredential.user.uid);
+      const uuidDoc = await getDoc(doc(db, "uid_map", userCredential.user.uid));
+      if (uuidDoc.exists()) {
+        const userUUID = uuidDoc.data().uuid;
+        setUserUUID(userUUID);
+        console.log("[Login] UUID context 저장:", userUUID);
+      } else {
+        console.log(
+          "[Login] UID→UUID 매핑 문서 없음:",
+          userCredential.user.uid
+        );
+      }
+
+      setUser(userCredential.user);
+      console.log("[Login] context user 저장 완료");
+
+      // 대시보드로 이동
+      navigate("/dashboard");
+      console.log("[Login] navigate('/dashboard') 완료");
     } catch (error) {
-      console.error("로그인 오류:", error);
+      console.error(
+        "[Login] 로그인 오류:",
+        error,
+        error.code,
+        error.message,
+        error.stack
+      );
       let errorMessage = "로그인에 실패했습니다.";
       switch (error.code) {
         case "auth/user-not-found":
@@ -84,8 +138,6 @@ const Login = () => {
       // 사용자 정보 확인
       if (result.user) {
         console.log("사용자 정보:", result.user);
-        // 로컬 스토리지에 사용자 정보 저장
-        localStorage.setItem("authUser", JSON.stringify(result.user));
         // 홈페이지로 리다이렉트
         window.location.href = "/";
       } else {
@@ -255,36 +307,27 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-3 gap-3">
+            <div className="mt-6 grid grid-cols-1 gap-3">
               <button
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className={`flex items-center justify-center py-2 px-4 rounded-md ${getButtonVariantClass(
-                  "outline"
-                )} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+                className="w-full flex items-center justify-center py-2 px-4 rounded-md border border-gray-300 bg-white text-black text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <img src="/google.svg" alt="Google" className="h-5 w-5 mr-2" />
-                Google
+                구글로 로그인
               </button>
               <button
                 onClick={handleNaverLogin}
                 disabled={loading}
-                className={`flex items-center justify-center py-2 px-4 rounded-md ${getButtonVariantClass(
-                  "outline"
-                )} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+                className="w-full flex items-center justify-center py-2 px-4 rounded-md bg-[#03C75A] text-white text-sm font-medium hover:bg-[#02b350] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <img src="/naver.svg" alt="Naver" className="h-5 w-5 mr-2" />
-                Naver
+                네이버로 로그인
               </button>
               <button
                 onClick={handleKakaoLogin}
                 disabled={loading}
-                className={`flex items-center justify-center py-2 px-4 rounded-md ${getButtonVariantClass(
-                  "outline"
-                )} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+                className="w-full flex items-center justify-center py-2 px-4 rounded-md bg-[#FEE500] text-black text-sm font-medium hover:bg-[#ffe14f] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <img src="/kakao.svg" alt="Kakao" className="h-5 w-5 mr-2" />
-                Kakao
+                카카오로 로그인
               </button>
             </div>
           </div>

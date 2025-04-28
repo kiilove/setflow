@@ -14,6 +14,8 @@ import FullScreenLoading from "./components/common/FullScreenLoading";
 import "./styles/globals.css";
 import { MessageProvider } from "./context/MessageContext";
 import { AuthProvider } from "./context/AuthContext";
+import InitialSetup from "./pages/settings/InitialSetup";
+import { getAuth } from "firebase/auth";
 
 // 테마 관련 커스텀 훅
 const useTheme = () => {
@@ -55,7 +57,8 @@ const useTheme = () => {
 
 // 인증된 라우트를 위한 래퍼 컴포넌트
 const ProtectedRoute = ({ children, requiresAuth }) => {
-  if (requiresAuth && !isAuthenticated()) {
+  const auth = getAuth();
+  if (requiresAuth && !auth.currentUser) {
     return <Navigate to="/auth/login" replace />;
   }
   return children;
@@ -89,12 +92,13 @@ const AppRoutes = ({ theme, toggleTheme, sidebarOpen, toggleSidebar }) => {
           }
         />
       ))}
+      <Route path="/settings/initial-setup" element={<InitialSetup />} />
     </Routes>
   );
 };
 
 const App = () => {
-  const [loading, setLoading] = useState(true);
+  const [loadingApp, setLoadingApp] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
@@ -106,14 +110,14 @@ const App = () => {
     const initializeApp = async () => {
       // 실제 초기화 작업을 여기에 추가할 수 있습니다
       setTimeout(() => {
-        setLoading(false);
+        setLoadingApp(false);
       }, 2000);
     };
 
     initializeApp();
   }, []);
 
-  if (loading) {
+  if (loadingApp) {
     return <FullScreenLoading />;
   }
 
